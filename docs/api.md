@@ -67,7 +67,7 @@ Mesma entrada e mesmas regras do POST. 200 com o aluno atualizado.
 
 O `schema.sql` usa `ON DELETE RESTRICT`: aluno com presenças registradas **não** pode ser excluído.
 Nesse caso: 409 `{ "mensagem": "Não é possível excluir: o aluno já tem presenças registradas." }`.
-⚠️ Política a confirmar com o PO (Guilherme). A tela já trata os dois casos.
+✅ Decisão do PO (20/10): aluno com presenças registradas não pode ser excluído.
 
 ---
 

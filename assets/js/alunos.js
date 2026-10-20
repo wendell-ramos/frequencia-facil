@@ -116,14 +116,14 @@ formulario.addEventListener('submit', async (evento) => {
 
   botaoSalvar.disabled = true;
   try {
-    if (editando) {
-      const aluno = await api.editarAluno(campos.id.value, dados);
-      mostrarMensagem(mensagem, `Alterações de ${aluno.nome} salvas.`);
-    } else {
-      const aluno = await api.criarAluno(dados);
-      mostrarMensagem(mensagem, `${aluno.nome} foi cadastrado.`);
-    }
+    const aluno = editando
+      ? await api.editarAluno(campos.id.value, dados)
+      : await api.criarAluno(dados);
+
+    // Limpa o formulário ANTES de mostrar a confirmação,
+    // porque sairModoEdicao() também esconde a mensagem.
     sairModoEdicao();
+    mostrarMensagem(mensagem, editando ? `Alterações de ${aluno.nome} salvas.` : `${aluno.nome} foi cadastrado.`);
     await carregar();
     campos.nome.focus();
   } catch (e) {
