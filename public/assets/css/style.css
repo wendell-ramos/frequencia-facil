@@ -1,0 +1,100 @@
+/* FrequênciaFácil — estilo minimalista. Responsável: Diogo */
+:root {
+  --primaria: #2563eb;
+  --primaria-escura: #1d4ed8;
+  --texto: #1f2937;
+  --texto-suave: #6b7280;
+  --borda: #e5e7eb;
+  --fundo: #f8fafc;
+  --branco: #fff;
+  --erro: #dc2626;
+  --ok: #16a34a;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--texto);
+  background: var(--fundo);
+}
+
+/* Menu */
+header { background: var(--primaria); }
+nav { max-width: 960px; margin: 0 auto; padding: 0 1rem; display: flex; gap: .25rem; flex-wrap: wrap; }
+nav a { color: #fff; text-decoration: none; padding: 1rem .75rem; opacity: .85; }
+nav a:hover, nav a.ativo { opacity: 1; box-shadow: inset 0 -3px 0 #fff; }
+nav a.logo { font-weight: 700; opacity: 1; margin-right: auto; }
+
+main { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+h1 { margin: 0 0 1rem; font-size: 1.5rem; }
+h2 { margin: 0 0 .75rem; font-size: 1.1rem; }
+
+/* Caixas */
+.card { background: var(--branco); border: 1px solid var(--borda); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+
+/* Formulários */
+.campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+label { display: block; font-size: .875rem; font-weight: 600; margin-bottom: .25rem; }
+input, select {
+  width: 100%; padding: .55rem .7rem; font: inherit;
+  border: 1px solid var(--borda); border-radius: 6px; background: #fff;
+}
+input:focus, select:focus { outline: 2px solid var(--primaria); outline-offset: -1px; }
+input.invalido { border-color: var(--erro); }
+.erro-campo { color: var(--erro); font-size: .8rem; margin-top: .2rem; min-height: 1em; }
+.acoes { display: flex; gap: .5rem; margin-top: 1rem; flex-wrap: wrap; }
+
+/* Botões */
+button, .botao {
+  font: inherit; cursor: pointer; border: 1px solid transparent; border-radius: 6px;
+  padding: .55rem 1rem; background: var(--primaria); color: #fff; text-decoration: none; display: inline-block;
+}
+button:hover, .botao:hover { background: var(--primaria-escura); }
+button.secundario, .botao.secundario { background: #fff; color: var(--texto); border-color: var(--borda); }
+button.secundario:hover, .botao.secundario:hover { background: var(--fundo); }
+button.perigo { background: #fff; color: var(--erro); border-color: var(--borda); }
+button.perigo:hover { background: #fef2f2; }
+.pequeno { padding: .3rem .6rem; font-size: .85rem; }
+button:disabled { opacity: .6; cursor: wait; }
+
+/* Mensagens */
+.msg { padding: .7rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+.msg.ok { background: #f0fdf4; color: var(--ok); border: 1px solid #bbf7d0; }
+.msg.erro { background: #fef2f2; color: var(--erro); border: 1px solid #fecaca; }
+.vazio { color: var(--texto-suave); text-align: center; padding: 1.5rem; }
+
+/* Tabelas */
+.tabela-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .6rem .5rem; border-bottom: 1px solid var(--borda); }
+th { font-size: .8rem; text-transform: uppercase; color: var(--texto-suave); letter-spacing: .03em; }
+td.acoes-linha { white-space: nowrap; text-align: right; }
+
+/* Presença */
+.opcoes-presenca { display: flex; gap: 1rem; }
+.opcoes-presenca label { display: flex; align-items: center; gap: .3rem; font-weight: 400; margin: 0; cursor: pointer; }
+.opcoes-presenca input { width: auto; }
+
+/* Status */
+.tag { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+.tag.presente { background: #dcfce7; color: #166534; }
+.tag.ausente { background: #fee2e2; color: #991b1b; }
+
+/* Totais do histórico */
+.totais { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.total { background: var(--fundo); border-radius: 8px; padding: .8rem; text-align: center; }
+.total strong { display: block; font-size: 1.6rem; }
+.total.boa strong { color: var(--ok); }
+.total.baixa strong { color: var(--erro); }
+.total span { font-size: .8rem; color: var(--texto-suave); }
+
+/* Início */
+.atalhos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.atalho { display: block; text-decoration: none; color: inherit; transition: border-color .15s; }
+.atalho:hover { border-color: var(--primaria); }
+.atalho p { color: var(--texto-suave); margin: 0; }
+
+.aviso-mock { font-size: .8rem; color: var(--texto-suave); text-align: center; margin-top: 2rem; }

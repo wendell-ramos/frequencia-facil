@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Início · FrequênciaFácil</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a class="logo" href="index.html">FrequênciaFácil</a>
+      <a href="alunos.html">Alunos</a>
+      <a href="presenca.html">Presença</a>
+      <a href="historico.html">Histórico</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Controle de frequência</h1>
+    <div class="atalhos">
+      <a class="card atalho" href="alunos.html">
+        <h2>Alunos</h2>
+        <p>Cadastre, edite e exclua alunos.</p>
+      </a>
+      <a class="card atalho" href="presenca.html">
+        <h2>Registrar presença</h2>
+        <p>Faça a chamada de uma aula.</p>
+      </a>
+      <a class="card atalho" href="historico.html">
+        <h2>Histórico</h2>
+        <p>Veja presenças e faltas de cada aluno.</p>
+      </a>
+    </div>
+  </main>
+  <script type="module">
+    import { iniciarPagina } from './assets/js/ui.js';
+    iniciarPagina();
+  </script>
+</body>
+</html>

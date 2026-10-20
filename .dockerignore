@@ -1,0 +1,7 @@
+.git
+.github
+vendor
+tests
+docs
+logs/*.log
+.env

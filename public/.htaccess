@@ -1,0 +1,7 @@
+# Arquivo existe (html, css, js)? Serve direto. Senão, vai para a API (index.php).
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+DirectoryIndex index.html

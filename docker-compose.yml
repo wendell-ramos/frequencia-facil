@@ -1,0 +1,52 @@
+# Infraestrutura como código: app + banco.
+# Local:  docker compose up -d --build        -> http://localhost:8080
+# VPS:    o CD copia este arquivo e roda `docker compose pull app && docker compose up -d`
+
+services:
+  app:
+    image: ${APP_IMAGE:-frequencia-facil:local}
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_VERSION: ${APP_VERSION:-dev}
+      TZ: America/Sao_Paulo
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-frequencia}
+      DB_USERNAME: ${DB_USERNAME:-frequencia}
+      DB_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+    volumes:
+      - app_logs:/var/www/html/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-frequencia}
+      MYSQL_USER: ${DB_USERNAME:-frequencia}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD no .env}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d:ro
+    # Porta do banco NÃO é exposta para a internet. Para acessar local, descomente:
+    # ports: ["3306:3306"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:
+  app_logs:

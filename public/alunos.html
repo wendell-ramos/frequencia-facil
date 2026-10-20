@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alunos · FrequênciaFácil</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a class="logo" href="index.html">FrequênciaFácil</a>
+      <a href="alunos.html">Alunos</a>
+      <a href="presenca.html">Presença</a>
+      <a href="historico.html">Histórico</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Alunos</h1>
+
+    <div id="mensagem" class="msg" hidden></div>
+
+    <!-- Formulário: serve para cadastrar e para editar -->
+    <section class="card">
+      <h2 id="titulo-form">Novo aluno</h2>
+      <form id="form-aluno" novalidate>
+        <input type="hidden" id="id">
+        <div class="campos">
+          <div>
+            <label for="nome">Nome *</label>
+            <input id="nome" name="nome" autocomplete="off">
+            <div class="erro-campo" data-erro="nome"></div>
+          </div>
+          <div>
+            <label for="telefone">Telefone *</label>
+            <input id="telefone" name="telefone" placeholder="(18) 99999-0000" inputmode="tel">
+            <div class="erro-campo" data-erro="telefone"></div>
+          </div>
+          <div>
+            <label for="dataNascimento">Data de nascimento</label>
+            <input id="dataNascimento" name="dataNascimento" type="date">
+            <div class="erro-campo" data-erro="dataNascimento"></div>
+          </div>
+        </div>
+        <div class="acoes">
+          <button type="submit" id="btn-salvar">Cadastrar</button>
+          <button type="button" id="btn-cancelar" class="secundario" hidden>Cancelar edição</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Lista -->
+    <section class="card">
+      <div class="campos" style="margin-bottom:1rem">
+        <div>
+          <label for="busca">Buscar por nome</label>
+          <input id="busca" type="search" placeholder="Digite um nome...">
+        </div>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr><th>Nome</th><th>Telefone</th><th>Nascimento</th><th></th></tr>
+          </thead>
+          <tbody id="lista"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="assets/js/alunos.js"></script>
+</body>
+</html>

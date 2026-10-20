@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Histórico de presença · FrequênciaFácil</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a class="logo" href="index.html">FrequênciaFácil</a>
+      <a href="alunos.html">Alunos</a>
+      <a href="presenca.html">Presença</a>
+      <a href="historico.html">Histórico</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Histórico de presença</h1>
+
+    <div id="mensagem" class="msg" hidden></div>
+
+    <section class="card">
+      <form id="filtros" class="campos">
+        <div>
+          <label for="aluno">Aluno</label>
+          <select id="aluno"><option value="">Selecione...</option></select>
+        </div>
+        <div>
+          <label for="inicio">De</label>
+          <input id="inicio" type="date">
+        </div>
+        <div>
+          <label for="fim">Até</label>
+          <input id="fim" type="date">
+        </div>
+      </form>
+    </section>
+
+    <section class="card" id="resultado" hidden>
+      <h2 id="nome-aluno"></h2>
+      <div class="totais">
+        <div class="total"><strong id="t-presencas">0</strong><span>Presenças</span></div>
+        <div class="total"><strong id="t-faltas">0</strong><span>Faltas</span></div>
+        <div class="total"><strong id="t-total">0</strong><span>Aulas</span></div>
+        <div class="total" id="caixa-percentual"><strong id="t-percentual">—</strong><span>Frequência</span></div>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Status</th></tr></thead>
+          <tbody id="lista"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="assets/js/historico.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrar presença · FrequênciaFácil</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a class="logo" href="index.html">FrequênciaFácil</a>
+      <a href="alunos.html">Alunos</a>
+      <a href="presenca.html">Presença</a>
+      <a href="historico.html">Histórico</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Registrar presença</h1>
+
+    <div id="mensagem" class="msg" hidden></div>
+
+    <section class="card">
+      <div class="campos" style="margin-bottom:1rem">
+        <div>
+          <label for="data">Data da aula</label>
+          <input id="data" type="date">
+        </div>
+      </div>
+
+      <div class="acoes" style="margin:0 0 1rem">
+        <button type="button" id="todos-presentes" class="secundario pequeno">Marcar todos presentes</button>
+      </div>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Aluno</th><th>Presença</th></tr></thead>
+          <tbody id="lista"></tbody>
+        </table>
+      </div>
+
+      <div class="acoes">
+        <button type="button" id="btn-salvar">Salvar chamada</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="assets/js/presenca.js"></script>
+</body>
+</html>
