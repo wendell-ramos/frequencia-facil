@@ -1,8 +1,10 @@
 services:
   app:
+    image: ${APP_IMAGE:-frequenciafacil-app:local}
     build:
       context: .
       dockerfile: docker/Dockerfile
+    restart: unless-stopped
     ports:
       - "127.0.0.1:${APP_PORT:-8080}:80"
     environment:
@@ -16,9 +18,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/health') === false ? 1 : 0);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
   db:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-frequenciafacil}
       MYSQL_USER: ${MYSQL_USER:-frequencia_app}
@@ -33,6 +47,12 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
 volumes:
   mysql_data:
+    name: ${MYSQL_VOLUME_NAME:-frequenciafacil_mysql_data}

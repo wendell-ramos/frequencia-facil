@@ -1,7 +1,15 @@
 .git
+.github
 .env
 .env.*
 vendor
 work
-tests
+database
+docs
+scripts
+coverage
+.phpunit.cache
+compose*.yaml
+docker-compose*.yml
+README.md
 composer.phar
