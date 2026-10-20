@@ -5,5 +5,7 @@ RewriteEngine On
 RewriteRule ^(?:app|database|docker|tests|vendor)(?:/|$) - [F,L,NC]
 RewriteRule (^|/)\. - [F,L]
 RewriteRule ^(?:composer\.(?:json|lock|phar)|compose\.ya?ml|phpunit\.xml|README\.md)$ - [F,L,NC]
+# CSS e JS das telas são servidos direto pelo Apache
+RewriteRule ^assets/ - [L]
 RewriteRule ^index\.php$ - [L]
 RewriteRule ^ index.php [QSA,L]
