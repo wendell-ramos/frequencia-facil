@@ -1,0 +1,9 @@
+Options -Indexes
+DirectoryIndex index.php
+
+RewriteEngine On
+RewriteRule ^(?:app|database|docker|tests|vendor)(?:/|$) - [F,L,NC]
+RewriteRule (^|/)\. - [F,L]
+RewriteRule ^(?:composer\.(?:json|lock|phar)|compose\.ya?ml|phpunit\.xml|README\.md)$ - [F,L,NC]
+RewriteRule ^index\.php$ - [L]
+RewriteRule ^ index.php [QSA,L]

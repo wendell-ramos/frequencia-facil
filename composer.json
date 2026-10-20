@@ -1,0 +1,21 @@
+{
+    "name": "frequencia-facil/app",
+    "description": "Sistema web de controle de frequencia em PHP e MySQL",
+    "type": "project",
+    "require": {
+        "php": "^8.3",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "scripts": {
+        "test": "@php vendor/bin/phpunit"
+    }
+}
