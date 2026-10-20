@@ -123,6 +123,24 @@ privadas do servidor. O código não depende de caminhos do XAMPP.
 Trabalhe em branches `feature/...`, abra PR para `main` e aguarde a revisão
 combinada com Canducci. CI/CD e configuração da VPS ficam com DevOps.
 
+## CI/CD e imagem de producao
+
+O workflow de CI valida Composer, executa o PHPUnit existente, verifica a
+sintaxe PHP, valida os dois arquivos Compose, constroi a imagem e testa o
+endpoint real `/health` contra um MySQL 8.4 temporario. Consulte
+[`docs/infraestrutura.md`](docs/infraestrutura.md) para os limites desses testes.
+
+O `compose.yaml` continua sendo o ambiente local do backend. Em producao,
+`compose.prod.yaml` deve ser aplicado como segundo arquivo: ele exige uma imagem
+GHCR com tag do commit e transforma `mysql_data` em volume externo. Isso impede
+que o deploy da aplicacao crie um volume novo por engano. O script de deploy
+atualiza somente `app` com `--no-build --no-deps` e nunca executa `down`.
+
+O CD esta desativado por padrao. Mesmo depois de integrado na `main`, ele so
+prossegue quando o CI dessa `main` termina com sucesso e a variavel de repositorio
+`ENABLE_PRODUCTION_CD` vale `true`. Nao habilite antes de cumprir o checklist da
+documentacao e conferir o volume atual da VPS.
+
 Referências: [PHP Docker](https://hub.docker.com/_/php),
 [MySQL Docker](https://hub.docker.com/_/mysql),
 [Composer](https://getcomposer.org/doc/) e [Apache](https://httpd.apache.org/docs/2.4/).

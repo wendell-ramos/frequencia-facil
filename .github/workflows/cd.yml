@@ -1,0 +1,118 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: frequenciafacil-production
+  cancel-in-progress: false
+
+jobs:
+  publish-and-deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      vars.ENABLE_PRODUCTION_CD == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout do commit validado pelo CI
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Definir imagem rastreavel
+        id: release
+        shell: bash
+        run: |
+          repository="${GITHUB_REPOSITORY,,}"
+          sha="${{ github.event.workflow_run.head_sha }}"
+          image="ghcr.io/${repository}:sha-${sha}"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+      - name: Autenticar no GHCR para publicacao
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir e publicar imagem imutavel
+        run: |
+          docker build --target production --file docker/Dockerfile --tag "${{ steps.release.outputs.image }}" .
+          docker push "${{ steps.release.outputs.image }}"
+
+      - name: Validar parametros do deploy
+        shell: bash
+        env:
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+        run: |
+          port="${VPS_SSH_PORT:-22}"
+          deploy_path="${DEPLOY_PATH:-/opt/frequenciafacil}"
+          healthcheck_url="${HEALTHCHECK_URL:-http://127.0.0.1:8080/health}"
+          [[ "$VPS_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$VPS_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$GHCR_USERNAME" =~ ^[A-Za-z0-9_.-]+$ ]]
+          [[ "$port" =~ ^[0-9]+$ ]] && (( port >= 1 && port <= 65535 ))
+          [[ "$deploy_path" =~ ^/[A-Za-z0-9._/-]+$ ]]
+          [[ "$healthcheck_url" =~ ^http://(127\.0\.0\.1|localhost):[0-9]+/[A-Za-z0-9._~/?=\&%+-]*$ ]]
+
+      - name: Preparar SSH
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Autenticar a VPS no GHCR
+        shell: bash
+        env:
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT }}
+        run: |
+          port="${VPS_SSH_PORT:-22}"
+          printf '%s' "$GHCR_READ_TOKEN" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$port" "$VPS_USER@$VPS_HOST" \
+            "docker login ghcr.io --username '$GHCR_USERNAME' --password-stdin"
+
+      - name: Atualizar somente o servico da aplicacao
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+          IMAGE: ${{ steps.release.outputs.image }}
+        run: |
+          port="${VPS_SSH_PORT:-22}"
+          deploy_path="${DEPLOY_PATH:-/opt/frequenciafacil}"
+          healthcheck_url="${HEALTHCHECK_URL:-http://127.0.0.1:8080/health}"
+          remote_script="/tmp/frequenciafacil-deploy-${{ github.run_id }}.sh"
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -P "$port" scripts/deploy.sh "$VPS_USER@$VPS_HOST:$remote_script"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$port" "$VPS_USER@$VPS_HOST" \
+            "chmod 700 '$remote_script' && '$remote_script' '$IMAGE' '$deploy_path' '$healthcheck_url'; status=\$?; rm -f '$remote_script'; exit \$status"
+
+      - name: Remover chave SSH do runner
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519"
