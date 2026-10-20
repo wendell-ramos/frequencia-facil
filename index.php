@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Config\Environment;
 use App\Controllers\HealthController;
 use App\Controllers\HomeController;
+use App\Controllers\PaginaController;
 
 try {
     require __DIR__ . '/vendor/autoload.php';
@@ -17,7 +18,9 @@ try {
     }
     $path = '/' . trim($path, '/');
 
-    if (!in_array($path, ['/', '/index.php', '/health'], true)) {
+    $rotas = ['/', '/index.php', '/health', '/alunos', '/chamada', '/historico'];
+
+    if (!in_array($path, $rotas, true)) {
         http_response_code(404);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['mensagem' => 'Rota nao encontrada.']);
@@ -28,6 +31,12 @@ try {
         echo json_encode(['mensagem' => 'Metodo nao permitido.']);
     } elseif ($path === '/health') {
         (new HealthController())->index();
+    } elseif ($path === '/alunos') {
+        (new PaginaController())->alunos();
+    } elseif ($path === '/chamada') {
+        (new PaginaController())->chamada();
+    } elseif ($path === '/historico') {
+        (new PaginaController())->historico();
     } else {
         (new HomeController())->index();
     }

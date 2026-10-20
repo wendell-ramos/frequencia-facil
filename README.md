@@ -9,9 +9,10 @@ com autoload PSR-4 e PHPUnit 11 para testes.
 
 ```text
 app/Config/         Carregamento do .env e conexão PDO
-app/Controllers/    Página inicial e verificação do banco
+app/Controllers/    Telas (Home e PaginaController) e verificação do banco
 app/Services/       Regras de negócio dos próximos cards
-app/Views/          Páginas PHP
+app/Views/          Páginas PHP (layout/ tem o topo e o rodapé comuns)
+assets/             CSS e JavaScript das telas, servidos direto pelo Apache
 database/schema.sql Tabelas alunos e presencas
 database/migrations/ Futuras alterações incrementais
 docker/             Dockerfile e configuração do Apache
@@ -88,7 +89,10 @@ O PHP não cria bancos, usuários ou tabelas ao receber requisições web.
 
 | Método | Caminho relativo | Resultado |
 | --- | --- | --- |
-| GET | `/` | Página inicial provisória |
+| GET | `/` | Início: data de hoje e situação da chamada |
+| GET | `/alunos` | Cadastro, edição e exclusão de alunos |
+| GET | `/chamada` | Registro de presença por data |
+| GET | `/historico` | Histórico e percentual de frequência por aluno |
 | GET | `/health` | HTTP 200 com banco acessível; 503 se a conexão falhar |
 
 Rotas desconhecidas retornam 404 e métodos não permitidos retornam 405.
