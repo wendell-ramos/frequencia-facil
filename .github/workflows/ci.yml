@@ -47,6 +47,13 @@ jobs:
             frequenciafacil-ci:${{ github.sha }} sh -lc \
             "find /source -path /source/vendor -prune -o -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l"
 
-      - name: Smoke test da infraestrutura PHP e Apache
+      - name: Validar sintaxe do JavaScript do frontend
+        shell: bash
+        run: |
+          for arquivo in assets/js/*.js; do
+            node --input-type=module --check < "$arquivo"
+          done
+
+      - name: Smoke test da aplicacao completa na imagem de producao
         shell: bash
         run: bash scripts/test-infrastructure.sh frequenciafacil-ci:${{ github.sha }}

@@ -8,14 +8,47 @@ db_container="frequenciafacil-ci-db-$suffix"
 app_container="frequenciafacil-ci-app-$suffix"
 db_password='ci-app-password'
 root_password='ci-root-password'
+response_dir="$(mktemp -d)"
 
 # Invocada indiretamente pelo trap.
 # shellcheck disable=SC2329
 cleanup() {
   docker rm -f "$app_container" "$db_container" >/dev/null 2>&1 || true
   docker network rm "$network" >/dev/null 2>&1 || true
+  rm -rf "$response_dir"
 }
 trap cleanup EXIT
+
+assert_get() {
+  local route="$1"
+  local expected_type="$2"
+  local expected_content="$3"
+  local label="$4"
+  local safe_name="${label//[^a-zA-Z0-9]/_}"
+  local headers="$response_dir/$safe_name.headers"
+  local body="$response_dir/$safe_name.body"
+  local status content_type
+
+  status="$(curl --silent --show-error \
+    --dump-header "$headers" \
+    --output "$body" \
+    --write-out '%{http_code}' \
+    "http://127.0.0.1:18080$route")"
+  content_type="$(sed -n 's/^[Cc]ontent-[Tt]ype:[[:space:]]*//p' "$headers" | tail -n 1 | tr -d '\r')"
+
+  if [[ "$status" != 200 ]]; then
+    echo "$label retornou HTTP $status; esperado 200." >&2
+    return 1
+  fi
+  if [[ ! "$content_type" =~ $expected_type ]]; then
+    echo "$label retornou Content-Type '$content_type'; esperado '$expected_type'." >&2
+    return 1
+  fi
+  if ! grep -Fq "$expected_content" "$body"; then
+    echo "$label nao contem o marcador esperado: $expected_content" >&2
+    return 1
+  fi
+}
 
 modules="$(docker run --rm "$image" php -m)"
 grep -qx 'mysqli' <<<"$modules"
@@ -25,7 +58,8 @@ apache_modules="$(docker run --rm "$image" apache2ctl -M 2>/dev/null)"
 grep -q 'rewrite_module' <<<"$apache_modules"
 
 docker network create "$network" >/dev/null
-docker run -d \
+# Impede que o Git Bash no Windows converta /var/lib/mysql em um caminho do host.
+MSYS_NO_PATHCONV=1 docker run -d \
   --name "$db_container" \
   --network "$network" \
   --network-alias db \
@@ -65,12 +99,22 @@ docker run -d \
 for attempt in {1..30}; do
   response="$(curl --fail --silent --show-error http://127.0.0.1:18080/health 2>/dev/null || true)"
   if grep -q '"status":"ok"' <<<"$response" && grep -q '"banco":"conectado"' <<<"$response"; then
-    echo "Smoke test de /health com MySQL concluido com sucesso."
-    exit 0
+    break
+  fi
+  if [[ "$attempt" == 30 ]]; then
+    docker logs "$app_container"
+    echo "O endpoint /health nao confirmou a conexao com o MySQL." >&2
+    exit 1
   fi
   sleep 2
 done
 
-docker logs "$app_container"
-echo "O endpoint /health nao confirmou a conexao com o MySQL." >&2
-exit 1
+assert_get / 'text/html' 'Fazer a chamada de hoje' 'GET raiz'
+assert_get /alunos 'text/html' '<h1>Alunos</h1>' 'GET alunos'
+assert_get /chamada 'text/html' '<h1>Chamada</h1>' 'GET chamada'
+assert_get /historico 'text/html' '<h1>Hist' 'GET historico'
+assert_get /health 'application/json' '"banco":"conectado"' 'GET health'
+assert_get /assets/css/estilo.css 'text/css' '.cabecalho' 'GET CSS'
+assert_get /assets/js/api.js '(application|text)/javascript' 'export const api' 'GET JavaScript'
+
+echo "Smoke test HTTP, assets e integracao com MySQL concluido com sucesso."

@@ -29,6 +29,7 @@ RUN apt-get update \
 FROM base AS production
 COPY composer.json composer.lock ./
 COPY app ./app
+COPY assets ./assets
 COPY index.php .htaccess ./
 COPY --from=production-vendor /var/www/html/vendor ./vendor
 
