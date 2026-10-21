@@ -1,0 +1,11 @@
+services:
+  app:
+    image: ${APP_IMAGE:?Defina APP_IMAGE com a tag imutavel publicada no GHCR}
+    environment:
+      APP_ENV: production
+      APP_BASE_PATH: ""
+
+volumes:
+  mysql_data:
+    external: true
+    name: ${MYSQL_VOLUME_NAME:?Defina MYSQL_VOLUME_NAME com o volume MySQL ja existente}

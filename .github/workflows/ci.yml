@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validar Docker Compose sem segredos de producao
+        env:
+          MYSQL_PASSWORD: ci-app-password
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_VOLUME_NAME: frequenciafacil_ci_data
+          APP_IMAGE: ghcr.io/example/frequenciafacil:sha-ci
+        run: |
+          docker compose config --quiet
+          docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+
+      - name: Construir imagem da aplicacao
+        run: docker build --target production --file docker/Dockerfile --tag frequenciafacil-ci:${{ github.sha }} .
+
+      - name: Construir estagio de testes PHP 8.3
+        run: docker build --target test --file docker/Dockerfile --tag frequenciafacil-test:${{ github.sha }} .
+
+      - name: Executar PHPUnit existente
+        run: docker run --rm frequenciafacil-test:${{ github.sha }} composer test
+
+      - name: Validar sintaxe de todos os arquivos PHP
+        shell: bash
+        run: |
+          docker run --rm \
+            --volume "${{ github.workspace }}:/source:ro" \
+            frequenciafacil-ci:${{ github.sha }} sh -lc \
+            "find /source -path /source/vendor -prune -o -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l"
+
+      - name: Validar sintaxe do JavaScript do frontend
+        shell: bash
+        run: |
+          for arquivo in assets/js/*.js; do
+            node --input-type=module --check < "$arquivo"
+          done
+
+      - name: Smoke test da aplicacao completa na imagem de producao
+        shell: bash
+        run: bash scripts/test-infrastructure.sh frequenciafacil-ci:${{ github.sha }}
