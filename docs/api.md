@@ -19,8 +19,11 @@ Se mudar algo, mude **aqui primeiro** e avise no grupo.
 | 200 | OK |
 | 201 | Criado |
 | 204 | Excluído (sem corpo) |
+| 400 | JSON malformado ou corpo que não é um objeto JSON |
 | 404 | Não encontrado |
+| 405 | Método não permitido (métodos aceitos no cabeçalho `Allow`) |
 | 409 | Conflito: aluno duplicado, ou exclusão de aluno com histórico |
+| 415 | POST/PUT sem `Content-Type: application/json` |
 | 422 | Dados inválidos (ver `erros`) |
 | 500 | Erro interno (vai para o log) |
 | 501 | Ainda não implementado |
@@ -39,6 +42,12 @@ Se mudar algo, mude **aqui primeiro** e avise no grupo.
 
 ## Alunos — US01 (itens 2 e 3)
 
+Endpoints de alunos implementados. Presença e histórico continuam planejados.
+O frontend permanece em demonstração até a integração feita pelo Diogo.
+`USAR_MOCK` controla todas as telas: a troca global depende também das APIs de
+presença/histórico; para integrar somente alunos antes disso, o Diogo deve
+separar essa escolha por recurso.
+
 ### `GET /api/alunos?busca=ana`
 ```json
 [
@@ -55,9 +64,18 @@ Entrada:
 { "nome": "Ana Souza", "telefone": "(18) 99711-0001", "dataNascimento": "2004-03-12" }
 ```
 - `nome` e `telefone` obrigatórios; `dataNascimento` opcional
+- `nome`: texto com 3 a 150 caracteres; espaços nas extremidades são removidos e espaços repetidos são reduzidos
+- `telefone`: texto com DDD e 10 ou 11 dígitos, aceitando espaços, parênteses e hífen; salvo com máscara padronizada
+- A duplicidade usa a comparação de nomes do MySQL (`utf8mb4_unicode_ci`, sem distinguir caixa/acentos) e os dígitos do telefone, inclusive para registros antigos sem máscara
+- `dataNascimento`: `null`, vazio ou data real no formato `AAAA-MM-DD`, de 1000-01-01 até hoje no fuso `America/Sao_Paulo`
+- POST/PUT exigem um objeto JSON e `Content-Type: application/json`; PUT substitui os campos do aluno
 - 201 com o aluno criado
 - 422 `{ "mensagem": "Dados inválidos", "erros": { "nome": "Informe o nome" } }`
 - 409 `{ "mensagem": "Já existe um aluno com este nome e telefone" }`
+
+O cadastro retorna também `Location: <APP_BASE_PATH>/api/alunos/{id}`.
+A listagem ordena por nome e ID. `busca` é opcional, tem até 150 caracteres e procura texto literal dentro do nome.
+ID inexistente ou fora do intervalo de inteiro positivo do banco retorna 404.
 
 ### `PUT /api/alunos/{id}`
 Mesma entrada e mesmas regras do POST. 200 com o aluno atualizado.

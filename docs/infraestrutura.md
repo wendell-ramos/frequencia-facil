@@ -4,7 +4,7 @@
 
 A infraestrutura segue a estrutura incorporada na `main` pelo backend: `index.php`
 na raiz, classes em `app/`, schema em `database/schema.sql`, Composer e PHPUnit.
-O PR de frontend ainda aberto nao foi copiado nem mesclado.
+As telas e os assets do frontend tambem fazem parte da imagem de producao.
 
 A imagem usa PHP 8.3 com Apache, `mysqli`, `pdo_mysql` e `mod_rewrite`. O codigo e
 copiado para a imagem; producao nao usa bind mount. A rota `/health` executa
@@ -69,9 +69,12 @@ para `main`. Ele:
 5. confirma `mysqli`, `pdo_mysql` e `mod_rewrite`;
 6. inicia MySQL 8.4 em `tmpfs` e exige resposta de sucesso do `/health`.
 
-O `EnvironmentTest` valida somente o carregamento das variaveis. O smoke test
-valida infraestrutura e conexao PDO. Nenhum deles comprova CRUD ou regras de
-frequencia; testes de negocio ainda precisam acompanhar essas funcionalidades.
+O `EnvironmentTest` valida o carregamento das variaveis. O smoke test valida
+infraestrutura, paginas, assets e conexao PDO. Quando recebe a imagem de testes
+como segundo argumento (como no CI), o script aplica `database/schema.sql` ao
+MySQL descartavel `frequenciafacil_test` e executa `AlunosApiTest` contra a
+imagem de producao. Essa suite comprova o CRUD de alunos, duplicidade e bloqueio
+de exclusao com historico. Presenca e historico ainda nao possuem endpoints.
 
 ## CD preparado e desativado
 

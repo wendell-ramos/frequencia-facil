@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-image="${1:?uso: test-infrastructure.sh IMAGEM}"
+image="${1:?uso: test-infrastructure.sh IMAGEM [IMAGEM_TESTES]}"
+test_image="${2:-}"
 suffix="${GITHUB_RUN_ID:-local}-$$"
 network="frequenciafacil-ci-$suffix"
 db_container="frequenciafacil-ci-db-$suffix"
 app_container="frequenciafacil-ci-app-$suffix"
+test_container="frequenciafacil-ci-tests-$suffix"
 db_password='ci-app-password'
 root_password='ci-root-password'
 response_dir="$(mktemp -d)"
@@ -13,7 +15,7 @@ response_dir="$(mktemp -d)"
 # Invocada indiretamente pelo trap.
 # shellcheck disable=SC2329
 cleanup() {
-  docker rm -f "$app_container" "$db_container" >/dev/null 2>&1 || true
+  docker rm -f "$test_container" "$app_container" "$db_container" >/dev/null 2>&1 || true
   docker network rm "$network" >/dev/null 2>&1 || true
   rm -rf "$response_dir"
 }
@@ -64,18 +66,18 @@ MSYS_NO_PATHCONV=1 docker run -d \
   --network "$network" \
   --network-alias db \
   --tmpfs /var/lib/mysql \
-  --env MYSQL_DATABASE=frequenciafacil \
+  --env MYSQL_DATABASE=frequenciafacil_test \
   --env MYSQL_USER=frequencia_app \
   --env MYSQL_PASSWORD="$db_password" \
   --env MYSQL_ROOT_PASSWORD="$root_password" \
   mysql:8.4 >/dev/null
 
-for attempt in {1..40}; do
+for attempt in {1..90}; do
   if docker exec --env MYSQL_PWD="$db_password" "$db_container" \
-    mysqladmin ping --host=127.0.0.1 --user=frequencia_app --silent >/dev/null 2>&1; then
+    mysql --protocol=TCP --host=127.0.0.1 --user=frequencia_app frequenciafacil_test -e 'SELECT 1' >/dev/null 2>&1; then
     break
   fi
-  if [[ "$attempt" == 40 ]]; then
+  if [[ "$attempt" == 90 ]]; then
     docker logs "$db_container"
     echo "MySQL nao ficou pronto para o smoke test." >&2
     exit 1
@@ -83,15 +85,19 @@ for attempt in {1..40}; do
   sleep 2
 done
 
+docker exec -i --env MYSQL_PWD="$db_password" "$db_container" \
+  mysql --user=frequencia_app frequenciafacil_test < database/schema.sql
+
 docker run -d \
   --name "$app_container" \
   --network "$network" \
+  --network-alias app \
   --publish 127.0.0.1:18080:80 \
   --env APP_ENV=ci \
   --env APP_BASE_PATH= \
   --env DB_HOST=db \
   --env DB_PORT=3306 \
-  --env MYSQL_DATABASE=frequenciafacil \
+  --env MYSQL_DATABASE=frequenciafacil_test \
   --env MYSQL_USER=frequencia_app \
   --env MYSQL_PASSWORD="$db_password" \
   "$image" >/dev/null
@@ -116,5 +122,17 @@ assert_get /historico 'text/html' '<h1>Hist' 'GET historico'
 assert_get /health 'application/json' '"banco":"conectado"' 'GET health'
 assert_get /assets/css/estilo.css 'text/css' '.cabecalho' 'GET CSS'
 assert_get /assets/js/api.js '(application|text)/javascript' 'export const api' 'GET JavaScript'
+
+if [[ -n "$test_image" ]]; then
+  docker run --rm --name "$test_container" \
+    --network "$network" \
+    --env FF_TEST_BASE_URL=http://app \
+    --env DB_HOST=db \
+    --env DB_PORT=3306 \
+    --env MYSQL_DATABASE=frequenciafacil_test \
+    --env MYSQL_USER=frequencia_app \
+    --env MYSQL_PASSWORD="$db_password" \
+    "$test_image" php vendor/bin/phpunit --filter AlunosApiTest
+fi
 
 echo "Smoke test HTTP, assets e integracao com MySQL concluido com sucesso."

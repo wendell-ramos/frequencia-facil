@@ -9,19 +9,22 @@ com autoload PSR-4 e PHPUnit 11 para testes.
 
 ```text
 app/Config/         Carregamento do .env e conexão PDO
-app/Controllers/    Telas (Home e PaginaController) e verificação do banco
-app/Services/       Regras de negócio dos próximos cards
+app/Controllers/    Telas, API de alunos e verificação do banco
+app/Http/           Respostas JSON e erros esperados da API
+app/Services/       Validação e persistência dos alunos com PDO
 app/Views/          Páginas PHP (layout/ tem o topo e o rodapé comuns)
 assets/             CSS e JavaScript das telas, servidos direto pelo Apache
 database/schema.sql Tabelas alunos e presencas
 database/migrations/ Futuras alterações incrementais
 docker/             Dockerfile e configuração do Apache
-tests/              Testes de configuração
+tests/              Testes de configuração, telas, validação e endpoints
 index.php           Entrada e rotas da aplicação
 compose.yaml        Ambiente Docker local
 ```
 
-A estrutura inicial ainda não implementa o CRUD nem as histórias de presença.
+A API de alunos implementa cadastro, listagem, consulta, edição e exclusão.
+As APIs de presença e histórico ainda não estão implementadas. As telas seguem
+em modo de demonstração; a integração do frontend fica com o Diogo.
 
 ## Configuração
 
@@ -107,15 +110,40 @@ composer install
 composer test
 ```
 
-Os testes iniciais validam o carregamento das variáveis e a prioridade do ambiente,
-sem exigir banco. Testes de CRUD serão incluídos junto com essas funcionalidades.
+Os testes de configuração, telas e validação rodam sem banco. Os testes HTTP
+de alunos ficam ignorados nessa execução e são executados pelo CI contra
+Apache/PHP e MySQL 8.4 descartáveis. Para repetir a verificação completa, com
+Docker aberto, execute na raiz pelo Git Bash (ou em Linux):
+
+```bash
+docker build --target production -f docker/Dockerfile -t frequenciafacil-backend:local .
+docker build --target test -f docker/Dockerfile -t frequenciafacil-backend-test:local .
+bash scripts/test-infrastructure.sh frequenciafacil-backend:local frequenciafacil-backend-test:local
+```
+
+O script usa a porta local 18080, rede temporária e MySQL em `tmpfs`, sem montar
+o volume do projeto. Cria o schema, verifica as páginas e executa os testes
+dos endpoints, incluindo duplicidade e bloqueio de exclusão com histórico.
+Remove seus containers e sua rede ao terminar. Os testes de escrita exigem
+`FF_TEST_BASE_URL` e `MYSQL_DATABASE=frequenciafacil_test`; não use credenciais
+do banco normal. O contrato e as validações estão em `docs/api.md`.
+
+Para testar manualmente no Insomnia, use `http://localhost:8080/api/alunos`
+após `docker compose up -d --build`. POST/PUT usam JSON, por exemplo:
+
+```json
+{ "nome": "Aluno Exemplo", "telefone": "(18) 99711-0001", "dataNascimento": "2000-02-29" }
+```
+
+GET na coleção lista os alunos; GET/PUT/DELETE em `/api/alunos/{id}` consultam,
+editam ou excluem. Esses pedidos manuais usam o banco local persistente.
 
 ## Banco e integração com DevOps
 
 - `alunos`: nome, telefone e nascimento; combinação nome/telefone única.
 - `presencas`: aluno, data e presente/ausente; combinação aluno/data única.
-- A chave estrangeira impede excluir alunos com histórico. Alinhar a política
-  de exclusão com o PO antes de implementar essa operação.
+- A chave estrangeira impede excluir alunos com histórico; a API responde 409
+  com uma mensagem clara, conforme a decisão do PO registrada em `docs/api.md`.
 - Versione scripts SQL e somente dados fictícios, nunca dumps de produção.
 
 O Compose deste repositório é uma base local, com a aplicação publicada apenas
