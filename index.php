@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Config\Environment;
+use App\Controllers\AlunoController;
 use App\Controllers\HealthController;
 use App\Controllers\HomeController;
 use App\Controllers\PaginaController;
+use App\Http\ApiException;
+use App\Http\JsonResponse;
 
 try {
     require __DIR__ . '/vendor/autoload.php';
@@ -20,7 +23,9 @@ try {
 
     $rotas = ['/', '/index.php', '/health', '/alunos', '/chamada', '/historico'];
 
-    if (!in_array($path, $rotas, true)) {
+    if (preg_match('#^/api/alunos(?:/([0-9]+))?$#D', $path, $matches)) {
+        (new AlunoController())->handle($_SERVER['REQUEST_METHOD'], $matches[1] ?? null);
+    } elseif (!in_array($path, $rotas, true)) {
         http_response_code(404);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['mensagem' => 'Rota nao encontrada.']);
@@ -40,6 +45,12 @@ try {
     } else {
         (new HomeController())->index();
     }
+} catch (ApiException $error) {
+    $resposta = ['mensagem' => $error->getMessage()];
+    if ($error->erros !== []) {
+        $resposta['erros'] = $error->erros;
+    }
+    JsonResponse::send($resposta, $error->status);
 } catch (Throwable $error) {
     error_log('Falha na aplicacao: ' . $error->getMessage());
     http_response_code(500);
