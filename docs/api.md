@@ -42,10 +42,10 @@ Se mudar algo, mude **aqui primeiro** e avise no grupo.
 
 ## Alunos — US01 (itens 2 e 3)
 
-Endpoints de alunos implementados. Presença e histórico continuam planejados.
+Endpoints de alunos e presença implementados. Histórico continua planejado.
 O frontend permanece em demonstração até a integração feita pelo Diogo.
 `USAR_MOCK` controla todas as telas: a troca global depende também das APIs de
-presença/histórico; para integrar somente alunos antes disso, o Diogo deve
+histórico; para integrar somente alunos e presença antes disso, o Diogo deve
 separar essa escolha por recurso.
 
 ### `GET /api/alunos?busca=ana`
@@ -91,6 +91,10 @@ Nesse caso: 409 `{ "mensagem": "Não é possível excluir: o aluno já tem prese
 
 ## Presença — US02 (item 5)
 
+Endpoints implementados, sem alterações nas telas. As datas usam o fuso
+`America/Sao_Paulo`, inclusive para calcular hoje, e não podem ser futuras
+(mesma regra já aplicada na tela de chamada).
+
 ### `GET /api/presencas?data=2026-10-20`
 Todos os alunos com o status naquela data (`null` = ainda não registrado). Sem `data` usa hoje.
 ```json
@@ -115,6 +119,16 @@ Grava a chamada inteira de uma vez. Se já existir registro do aluno na data, at
 }
 ```
 200 `{ "mensagem": "Presença salva", "total": 2 }`
+
+- `data` é obrigatória no POST: data real em `AAAA-MM-DD`, de 1000-01-01 até hoje. No GET, apenas a ausência do parâmetro usa hoje; data vazia/inválida retorna 422.
+- `registros` deve ser uma lista não vazia. Cada item exige `alunoId` inteiro positivo de um aluno existente e `presente` booleano (`true` ou `false`, sem aceitar texto ou 0/1).
+- Um aluno não pode aparecer duas vezes no mesmo envio; duplicidade no lote retorna 422.
+- O lote inteiro é salvo em uma transação. Um aluno inexistente ou falha durante a gravação desfaz o lote, incluindo atualizações já iniciadas. Aluno inexistente retorna 422 com `erros.registros`.
+- A chave única aluno/data e o upsert atualizam a marcação existente sem criar outro registro. Repetir a mesma chamada é permitido.
+- `total` é a quantidade de registros enviados e aceitos, inclusive quando não houve mudança de valor.
+- Um envio parcial altera somente os alunos informados; não apaga marcações de alunos omitidos nem de outras datas.
+- O GET lista todos os alunos por nome e ID; `presente: null` significa sem registro, `false` significa falta e `true` significa presença. Sem alunos, retorna `alunos: []`.
+- POST exige um objeto JSON e `Content-Type: application/json` (400 para JSON inválido e 415 para tipo incorreto). Métodos diferentes de GET/POST retornam 405 com `Allow: GET, POST`.
 
 ---
 

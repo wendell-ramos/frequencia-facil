@@ -9,9 +9,9 @@ com autoload PSR-4 e PHPUnit 11 para testes.
 
 ```text
 app/Config/         Carregamento do .env e conexão PDO
-app/Controllers/    Telas, API de alunos e verificação do banco
+app/Controllers/    Telas, APIs de alunos/presenças e verificação do banco
 app/Http/           Respostas JSON e erros esperados da API
-app/Services/       Validação e persistência dos alunos com PDO
+app/Services/       Validação e persistência dos alunos e presenças com PDO
 app/Views/          Páginas PHP (layout/ tem o topo e o rodapé comuns)
 assets/             CSS e JavaScript das telas, servidos direto pelo Apache
 database/schema.sql Tabelas alunos e presencas
@@ -23,7 +23,8 @@ compose.yaml        Ambiente Docker local
 ```
 
 A API de alunos implementa cadastro, listagem, consulta, edição e exclusão.
-As APIs de presença e histórico ainda não estão implementadas. As telas seguem
+A API de presença consulta a chamada por data e salva/atualiza marcações em lote.
+A API de histórico ainda não está implementada. As telas seguem
 em modo de demonstração; a integração do frontend fica com o Diogo.
 
 ## Configuração
@@ -123,7 +124,8 @@ bash scripts/test-infrastructure.sh frequenciafacil-backend:local frequenciafaci
 
 O script usa a porta local 18080, rede temporária e MySQL em `tmpfs`, sem montar
 o volume do projeto. Cria o schema, verifica as páginas e executa os testes
-dos endpoints, incluindo duplicidade e bloqueio de exclusão com histórico.
+dos endpoints de alunos e presenças, incluindo duplicidade, bloqueio de exclusão
+com histórico, atualização sem duplicar e rollback de chamadas inválidas.
 Remove seus containers e sua rede ao terminar. Os testes de escrita exigem
 `FF_TEST_BASE_URL` e `MYSQL_DATABASE=frequenciafacil_test`; não use credenciais
 do banco normal. O contrato e as validações estão em `docs/api.md`.
@@ -137,6 +139,18 @@ após `docker compose up -d --build`. POST/PUT usam JSON, por exemplo:
 
 GET na coleção lista os alunos; GET/PUT/DELETE em `/api/alunos/{id}` consultam,
 editam ou excluem. Esses pedidos manuais usam o banco local persistente.
+
+Para presença, `GET /api/presencas?data=2000-01-01` consulta a chamada
+(`GET /api/presencas` usa hoje). `POST /api/presencas` recebe um JSON como:
+
+```json
+{ "data": "2000-01-01", "registros": [{ "alunoId": 1, "presente": true }] }
+```
+
+Use o ID de um aluno cadastrado. Um novo envio para o mesmo aluno/data atualiza
+a marcação. O lote é salvo por inteiro ou desfeito se houver erro; não são
+aceitas datas futuras, IDs repetidos no envio ou valores diferentes de
+`true`/`false`. O frontend continua em demonstração até o Diogo integrar as APIs.
 
 ## Banco e integração com DevOps
 
@@ -154,6 +168,12 @@ privadas do servidor. O código não depende de caminhos do XAMPP.
 
 Trabalhe em branches `feature/...`, abra PR para `main` e aguarde a revisão
 combinada com Canducci. CI/CD e configuração da VPS ficam com DevOps.
+
+Uma entrega que depende de outra ainda em revisão pode usar a branch anterior
+como base do PR. Esta entrega de presenças parte de `feature/backend-alunos`;
+enquanto o PR de alunos estiver aberto, essa é a base do PR de presenças.
+Depois do merge de alunos, ajuste a base para `main` e confira novamente o diff
+e o CI. O CI também aceita PRs com base em `feature/backend-*` para esse fluxo.
 
 ## CI/CD e imagem de producao
 

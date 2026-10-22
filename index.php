@@ -7,6 +7,7 @@ use App\Controllers\AlunoController;
 use App\Controllers\HealthController;
 use App\Controllers\HomeController;
 use App\Controllers\PaginaController;
+use App\Controllers\PresencaController;
 use App\Http\ApiException;
 use App\Http\JsonResponse;
 
@@ -25,6 +26,8 @@ try {
 
     if (preg_match('#^/api/alunos(?:/([0-9]+))?$#D', $path, $matches)) {
         (new AlunoController())->handle($_SERVER['REQUEST_METHOD'], $matches[1] ?? null);
+    } elseif ($path === '/api/presencas') {
+        (new PresencaController())->handle($_SERVER['REQUEST_METHOD']);
     } elseif (!in_array($path, $rotas, true)) {
         http_response_code(404);
         header('Content-Type: application/json; charset=utf-8');

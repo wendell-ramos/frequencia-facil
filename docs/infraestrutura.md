@@ -59,8 +59,9 @@ app` e `up -d --no-build --no-deps app`; nao reinicia nem recria o banco.
 
 ## CI
 
-`.github/workflows/ci.yml` roda em Pull Requests destinados a `main` e em pushes
-para `main`. Ele:
+`.github/workflows/ci.yml` roda em Pull Requests destinados a `main` ou a
+`feature/backend-*` (para revisar entregas dependentes) e em pushes para `main`.
+O CD continua restrito a CI bem-sucedido em push na `main`. O CI:
 
 1. valida `composer.json`, instala dependencias e executa `composer test`;
 2. valida a configuracao local e o overlay de producao sem segredos reais;
@@ -72,9 +73,11 @@ para `main`. Ele:
 O `EnvironmentTest` valida o carregamento das variaveis. O smoke test valida
 infraestrutura, paginas, assets e conexao PDO. Quando recebe a imagem de testes
 como segundo argumento (como no CI), o script aplica `database/schema.sql` ao
-MySQL descartavel `frequenciafacil_test` e executa `AlunosApiTest` contra a
+MySQL descartavel `frequenciafacil_test` e executa `AlunosApiTest` e
+`PresencasApiTest` contra a
 imagem de producao. Essa suite comprova o CRUD de alunos, duplicidade e bloqueio
-de exclusao com historico. Presenca e historico ainda nao possuem endpoints.
+de exclusao com historico. Tambem testa consulta e gravacao de presencas,
+atualizacao sem duplicar e rollback do lote. Historico ainda nao possui endpoint.
 
 ## CD preparado e desativado
 

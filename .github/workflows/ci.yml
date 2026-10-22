@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'feature/backend-*']
   push:
     branches: [main]
 
@@ -54,6 +54,6 @@ jobs:
             node --input-type=module --check < "$arquivo"
           done
 
-      - name: Smoke test e endpoints de alunos com MySQL isolado
+      - name: Smoke test e endpoints de alunos e presencas com MySQL isolado
         shell: bash
         run: bash scripts/test-infrastructure.sh frequenciafacil-ci:${{ github.sha }} frequenciafacil-test:${{ github.sha }}
