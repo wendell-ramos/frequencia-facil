@@ -132,7 +132,7 @@ if [[ -n "$test_image" ]]; then
     --env MYSQL_DATABASE=frequenciafacil_test \
     --env MYSQL_USER=frequencia_app \
     --env MYSQL_PASSWORD="$db_password" \
-    "$test_image" php vendor/bin/phpunit --filter '(AlunosApiTest|PresencasApiTest)'
+    "$test_image" php vendor/bin/phpunit --filter '(AlunosApiTest|PresencasApiTest|HistoricoApiTest)'
 fi
 
 echo "Smoke test HTTP, assets e integracao com MySQL concluido com sucesso."

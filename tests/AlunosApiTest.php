@@ -182,7 +182,7 @@ final class AlunosApiTest extends TestCase
         foreach (['GET', 'PUT', 'DELETE'] as $method) {
             self::assertSame(404, $this->request($method, '/api/alunos/' . $id, ['nome' => 'Ana', 'telefone' => '18997110001'])['status']);
         }
-        foreach (['0', '4294967296', '99999999999999999999', 'abc', '1/presencas'] as $invalid) {
+        foreach (['0', '4294967296', '99999999999999999999', 'abc', '1/rota-inexistente'] as $invalid) {
             self::assertSame(404, $this->request('GET', '/api/alunos/' . $invalid)['status']);
         }
         $response = $this->request('PATCH', '/api/alunos/1');

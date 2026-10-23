@@ -42,11 +42,9 @@ Se mudar algo, mude **aqui primeiro** e avise no grupo.
 
 ## Alunos — US01 (itens 2 e 3)
 
-Endpoints de alunos e presença implementados. Histórico continua planejado.
-O frontend permanece em demonstração até a integração feita pelo Diogo.
-`USAR_MOCK` controla todas as telas: a troca global depende também das APIs de
-histórico; para integrar somente alunos e presença antes disso, o Diogo deve
-separar essa escolha por recurso.
+Endpoints de alunos, presença e histórico implementados. O frontend permanece
+em demonstração até a integração e validação feitas pelo Diogo após revisão
+das entregas. `USAR_MOCK` controla todas as telas e não foi alterado pelo backend.
 
 ### `GET /api/alunos?busca=ana`
 ```json
@@ -134,6 +132,9 @@ Grava a chamada inteira de uma vez. Se já existir registro do aluno na data, at
 
 ## Histórico — US03 (item 6)
 
+Endpoint implementado. Retorna somente o aluno selecionado e seus registros,
+sem acrescentar lançamentos para datas sem marcação.
+
 ### `GET /api/alunos/{id}/presencas?inicio=2026-10-01&fim=2026-10-31`
 `inicio` e `fim` opcionais.
 ```json
@@ -147,3 +148,12 @@ Grava a chamada inteira de uma vez. Se já existir registro do aluno na data, at
 }
 ```
 Sem registros: `registros: []` e totais zerados — o front mostra "Nenhum registro no período".
+
+- `inicio` e `fim` são opcionais; ausentes ou vazios (`inicio=&fim=`) não limitam a consulta.
+- Quando preenchidos, exigem datas reais em `AAAA-MM-DD`, de 1000-01-01 a 9999-12-31. Limites futuros são permitidos para consultar períodos como o mês inteiro; isso não permite registrar chamadas futuras.
+- Os limites são inclusivos. Apenas `inicio` consulta a partir dessa data; apenas `fim` consulta até essa data. Período invertido ou parâmetros inválidos retornam 422 com `erros.inicio` e/ou `erros.fim`.
+- Os registros vêm da data mais recente para a mais antiga; `presente` é booleano e os totais são inteiros calculados sobre essa mesma lista filtrada.
+- Datas sem registro não contam como faltas. Os totais consideram somente marcações salvas para o aluno consultado, sem misturar chamadas de outros alunos.
+- Aluno existente sem registros no período retorna 200, mantendo `aluno`, com lista vazia e totais zerados. Aluno inexistente ou ID inválido retorna 404.
+- Somente GET é aceito; outros métodos retornam 405 com `Allow: GET`.
+- O percentual e a regra de baixa frequência não são acrescentados a este endpoint; o relatório do card #9 permanece uma evolução separada.
