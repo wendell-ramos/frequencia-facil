@@ -74,10 +74,11 @@ O `EnvironmentTest` valida o carregamento das variaveis. O smoke test valida
 infraestrutura, paginas, assets e conexao PDO. Quando recebe a imagem de testes
 como segundo argumento (como no CI), o script aplica `database/schema.sql` ao
 MySQL descartavel `frequenciafacil_test` e executa `AlunosApiTest` e
-`PresencasApiTest` contra a
+`PresencasApiTest` e `HistoricoApiTest` contra a
 imagem de producao. Essa suite comprova o CRUD de alunos, duplicidade e bloqueio
 de exclusao com historico. Tambem testa consulta e gravacao de presencas,
-atualizacao sem duplicar e rollback do lote. Historico ainda nao possui endpoint.
+atualizacao sem duplicar e rollback do lote. Historico valida filtros inclusivos,
+totais, isolamento entre alunos e periodos sem registros.
 
 ## CD preparado e desativado
 
