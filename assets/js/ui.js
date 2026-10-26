@@ -1,5 +1,5 @@
 // Funções de tela usadas por todas as páginas.
-import { USAR_MOCK } from './api.js';
+import { EM_DEMONSTRACAO } from './api.js';
 
 /** Mostra uma mensagem no topo da página. tipo: 'sucesso' | 'erro' */
 export function mostrarMensagem(el, texto, tipo = 'sucesso') {
@@ -89,7 +89,7 @@ export function url(caminho) {
 /** Avisa no rodapé quando está em modo de demonstração (o menu já vem marcado pelo PHP). */
 export function iniciarPagina() {
   const aviso = document.getElementById('aviso-modo');
-  if (USAR_MOCK && aviso) {
+  if (EM_DEMONSTRACAO && aviso) {
     aviso.textContent = 'Modo de demonstração: os dados ficam salvos só neste navegador.';
     aviso.hidden = false;
   }
