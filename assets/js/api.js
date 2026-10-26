@@ -5,19 +5,35 @@
 // A API fica em <APP_BASE_PATH>/api/. O PHP grava a base em <body data-base="...">,
 // então funciona no Docker (base vazia) e no XAMPP (/frequencia-facil) sem configurar nada.
 //
-// USAR_MOCK = true  -> dados de mentira salvos no navegador (localStorage)
-// USAR_MOCK = false -> chama a API PHP de verdade (<base>/api/...)
-// Troque para false quando a API do Wendell estiver pronta.
+// MODO_DEMONSTRACAO escolhe, por recurso, de onde vêm os dados:
+//   false -> API PHP de verdade (<base>/api/...), gravando no MySQL
+//   true  -> dados de demonstração salvos só no navegador (localStorage)
+// Útil para testar uma tela sem banco ou quando um endpoint ainda não existe.
+// Atenção: alunos e presenças da demonstração não se misturam com os do banco,
+// então use o mesmo modo em todos os recursos para testar o fluxo completo.
 // ============================================================
-export const USAR_MOCK = true;
+export const MODO_DEMONSTRACAO = {
+  alunos: false,     // GET/POST/PUT/DELETE /api/alunos          (PR #5)
+  presencas: false,  // GET/POST /api/presencas                  (PR #6)
+  historico: false,  // GET /api/alunos/{id}/presencas           (PR #7)
+};
+
+/** true se alguma tela está usando dados de demonstração (mostra o aviso no rodapé). */
+export const EM_DEMONSTRACAO = Object.values(MODO_DEMONSTRACAO).some(Boolean);
 
 // ---------- API de verdade ----------
 async function request(method, path, body) {
-  const res = await fetch(`${document.body.dataset.base || ''}/api${path}`, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(`${document.body.dataset.base || ''}/api${path}`, {
+      method,
+      headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    // Servidor fora do ar ou sem internet: fetch nem chega a ter resposta
+    throw erroApi('Não foi possível conectar ao servidor. Verifique a conexão e tente de novo.', 0);
+  }
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) throw erroApi(data?.mensagem || `Erro ${res.status}`, res.status, data?.erros);
   return data;
@@ -37,9 +53,10 @@ const apiReal = {
   criarAluno:        (dados)        => request('POST', '/alunos', dados),
   editarAluno:       (id, dados)    => request('PUT', `/alunos/${id}`, dados),
   excluirAluno:      (id)           => request('DELETE', `/alunos/${id}`),
-  presencasDoDia:    (data)         => request('GET', `/presencas?data=${data}`),
+  presencasDoDia:    (data)         => request('GET', `/presencas?data=${encodeURIComponent(data)}`),
   registrarPresenca: (data, registros) => request('POST', '/presencas', { data, registros }),
-  historico: (id, inicio = '', fim = '') => request('GET', `/alunos/${id}/presencas?inicio=${inicio}&fim=${fim}`),
+  historico: (id, inicio = '', fim = '') =>
+    request('GET', `/alunos/${id}/presencas?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`),
 };
 
 // ---------- Mock (imita a API seguindo docs/api.md) ----------
@@ -179,4 +196,16 @@ const apiMock = {
   },
 };
 
-export const api = USAR_MOCK ? apiMock : apiReal;
+// Cada função usa a API real ou a demonstração conforme MODO_DEMONSTRACAO
+const RECURSO = {
+  listarAlunos: 'alunos', buscarAluno: 'alunos', criarAluno: 'alunos', editarAluno: 'alunos', excluirAluno: 'alunos',
+  presencasDoDia: 'presencas', registrarPresenca: 'presencas',
+  historico: 'historico',
+};
+
+export const api = Object.fromEntries(
+  Object.entries(RECURSO).map(([funcao, recurso]) => [
+    funcao,
+    MODO_DEMONSTRACAO[recurso] ? apiMock[funcao] : apiReal[funcao],
+  ]),
+);
