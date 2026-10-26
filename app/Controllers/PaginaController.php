@@ -11,6 +11,12 @@ namespace App\Controllers;
  */
 class PaginaController
 {
+    /** Tela pública de login (a única tela que não exige sessão). */
+    public function login(): void
+    {
+        $this->exibir('login');
+    }
+
     public function alunos(): void
     {
         $this->exibir('alunos');

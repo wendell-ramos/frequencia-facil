@@ -6,7 +6,8 @@ Responsável: Diogo.
 app/Controllers/HomeController.php     /  (página inicial, do Wendell)
 app/Controllers/PaginaController.php   /alunos, /chamada, /historico
 app/Views/
-├── layout/topo.php      <head>, cabeçalho e menu (comum a todas)
+├── layout/topo.php      <head>, cabeçalho, menu, nome do professor e botão Sair
+├── login.php            /login      Card #10: e-mail e senha (pública, sem menu)
 ├── layout/rodape.php    Rodapé e o <script> da tela
 ├── home.php             /           Data de hoje e situação da chamada
 ├── alunos.php           /alunos     US01: cadastro, lista, editar, excluir
@@ -17,6 +18,7 @@ assets/
 └── js/
     ├── api.js           Chamadas à API + modo de demonstração por recurso (MODO_DEMONSTRACAO)
     ├── ui.js            Funções comuns (mensagens, datas, máscara de telefone, url())
+    ├── login.js         Entrar e voltar para a tela pedida (?volta=)
     ├── inicio.js  alunos.js  chamada.js  historico.js
 ```
 
@@ -28,9 +30,17 @@ assets/
 - As views só têm o HTML. Os dados vêm da API em JSON, buscados pelo JavaScript
   (contrato em `docs/api.md`).
 - As telas usam a API real (`/api/alunos`, `/api/presencas`, `/api/alunos/{id}/presencas`).
-  A entrega de autenticação exige integrar a tela pública de login, preservar o cookie,
-  consultar a sessão e enviar CSRF nas gravações: veja [autenticacao.md](autenticacao.md).
-  Em `assets/js/api.js`, `MODO_DEMONSTRACAO` permite trocar cada recurso para dados de
+- **Login e sessão** ([autenticacao.md](autenticacao.md)):
+  - `/login` é a única tela pública. Abrir outra tela sem sessão **pelo navegador**
+    (`Accept: text/html`) redireciona para `/login?volta=<tela>`; depois de entrar, volta para ela.
+    Chamadas de API e o curl dos testes continuam recebendo o 401 em JSON.
+  - `api.js` guarda o token CSRF **só em memória** (nunca em localStorage), busca em
+    `GET /api/auth/sessao` quando precisa, troca pelo token novo do login e envia `X-CSRF-Token`
+    em POST/PUT/DELETE. O cookie `ff_session` é HttpOnly e fica com o navegador.
+  - 401 em qualquer chamada leva ao login (sessão expirou). 403 descarta o token e mostra
+    "Confira os dados e tente salvar de novo", sem repetir a gravação sozinho.
+  - O botão **Sair** chama `POST /api/auth/logout` e volta para o login.
+- Em `assets/js/api.js`, `MODO_DEMONSTRACAO` permite trocar cada recurso para dados de
   demonstração salvos no navegador (útil para testar uma tela sem banco). Com algum recurso
   em demonstração, o rodapé avisa.
 - Sem conexão com o servidor, as telas mostram "Não foi possível conectar ao servidor".

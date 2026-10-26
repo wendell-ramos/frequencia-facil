@@ -1,5 +1,5 @@
 // Funções de tela usadas por todas as páginas.
-import { EM_DEMONSTRACAO } from './api.js';
+import { EM_DEMONSTRACAO, auth, irParaLogin } from './api.js';
 
 /** Mostra uma mensagem no topo da página. tipo: 'sucesso' | 'erro' */
 export function mostrarMensagem(el, texto, tipo = 'sucesso') {
@@ -86,11 +86,32 @@ export function url(caminho) {
   return (document.body.dataset.base || '') + caminho;
 }
 
-/** Avisa no rodapé quando está em modo de demonstração (o menu já vem marcado pelo PHP). */
+/**
+ * Prepara a tela: aviso de demonstração no rodapé, nome do professor e botão Sair.
+ * Também já busca o token CSRF, para as gravações não esperarem por ele.
+ */
 export function iniciarPagina() {
   const aviso = document.getElementById('aviso-modo');
   if (EM_DEMONSTRACAO && aviso) {
     aviso.textContent = 'Modo de demonstração: os dados ficam salvos só neste navegador.';
     aviso.hidden = false;
   }
+
+  const botaoSair = document.getElementById('botao-sair');
+  if (!botaoSair) return; // tela de login não tem sessão para mostrar
+
+  auth.sessao().then((sessao) => {
+    if (!sessao.autenticado) return irParaLogin();
+    document.getElementById('nome-professor').textContent = sessao.professor.nome;
+  }).catch(() => { /* sem conexão: a própria tela mostra o erro ao carregar os dados */ });
+
+  botaoSair.addEventListener('click', async () => {
+    botaoSair.disabled = true;
+    try {
+      await auth.sair();
+    } catch {
+      // mesmo se a sessão já tiver expirado, segue para o login
+    }
+    location.assign(`${document.body.dataset.base || ''}/login`);
+  });
 }

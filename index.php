@@ -25,13 +25,25 @@ try {
     }
     $path = '/' . trim($path, '/');
 
-    $rotas = ['/', '/index.php', '/health', '/alunos', '/chamada', '/historico'];
+    $rotas = ['/', '/index.php', '/health', '/login', '/alunos', '/chamada', '/historico'];
+    $paginasPublicas = ['/health', '/login'];
 
     if ($path !== '/health') {
         AuthSession::iniciar();
     }
+    $paginaProtegida = in_array($path, $rotas, true) && !in_array($path, $paginasPublicas, true);
     $recursoProtegido = preg_match('#^/api/alunos(?:/([0-9]+)(?:/presencas)?)?$#D', $path)
-        || $path === '/api/presencas' || (in_array($path, $rotas, true) && $path !== '/health');
+        || $path === '/api/presencas' || $paginaProtegida;
+
+    // Navegador abrindo uma tela sem sessão: vai para o login e volta para a mesma tela depois.
+    // Clientes de API (curl, testes, fetch) continuam recebendo o 401 em JSON.
+    $pedeHtml = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html');
+    if ($paginaProtegida && $pedeHtml && $_SERVER['REQUEST_METHOD'] === 'GET' && AuthSession::professor() === null) {
+        $volta = $path . (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
+        header('Location: ' . $basePath . '/login' . ($path === '/' ? '' : '?volta=' . rawurlencode($volta)), true, 302);
+        return;
+    }
+
     if ($recursoProtegido) {
         AuthSession::exigir();
         if (in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
@@ -58,6 +70,8 @@ try {
         echo json_encode(['mensagem' => 'Metodo nao permitido.']);
     } elseif ($path === '/health') {
         (new HealthController())->index();
+    } elseif ($path === '/login') {
+        (new PaginaController())->login();
     } elseif ($path === '/alunos') {
         (new PaginaController())->alunos();
     } elseif ($path === '/chamada') {
