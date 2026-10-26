@@ -6,8 +6,11 @@ use App\Config\Database;
 use App\Services\PresencaValidator;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/AuthenticatedApiClient.php';
+
 final class PresencasApiTest extends TestCase
 {
+    use AuthenticatedApiClient;
     private string $baseUrl;
     private PDO $db;
     private array $ids = [];
@@ -23,10 +26,12 @@ final class PresencasApiTest extends TestCase
         }
         $this->baseUrl = rtrim($url, '/');
         $this->db = Database::getConnection();
+        $this->iniciarAutenticacaoDeTeste();
     }
 
     protected function tearDown(): void
     {
+        $this->removerProfessorDeTeste();
         if (!isset($this->db)) {
             return;
         }
@@ -42,7 +47,7 @@ final class PresencasApiTest extends TestCase
     {
         $context = stream_context_create(['http' => [
             'method' => $method,
-            'header' => "Content-Type: $tipo\r\n",
+            'header' => "Content-Type: $tipo\r\n" . $this->cabecalhosAutenticacao(),
             'content' => $raw ?? ($dados === null ? '' : json_encode((object) $dados, JSON_THROW_ON_ERROR)),
             'ignore_errors' => true,
             'timeout' => 10,

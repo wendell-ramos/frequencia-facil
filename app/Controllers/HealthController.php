@@ -14,7 +14,10 @@ class HealthController
         header('Content-Type: application/json; charset=utf-8');
 
         try {
-            Database::getConnection()->query('SELECT 1');
+            $db = Database::getConnection();
+            $db->query('SELECT 1');
+            // A versão autenticada não está pronta sem a migração de professores.
+            $db->query('SELECT id FROM professores LIMIT 0');
             echo json_encode(['status' => 'ok', 'banco' => 'conectado']);
         } catch (Throwable $error) {
             error_log('Falha no health check: ' . $error->getMessage());

@@ -11,6 +11,8 @@ use App\Controllers\PaginaController;
 use App\Controllers\PresencaController;
 use App\Http\ApiException;
 use App\Http\JsonResponse;
+use App\Http\AuthSession;
+use App\Controllers\AuthController;
 
 try {
     require __DIR__ . '/vendor/autoload.php';
@@ -25,7 +27,21 @@ try {
 
     $rotas = ['/', '/index.php', '/health', '/alunos', '/chamada', '/historico'];
 
-    if (preg_match('#^/api/alunos(?:/([0-9]+))?$#D', $path, $matches)) {
+    if ($path !== '/health') {
+        AuthSession::iniciar();
+    }
+    $recursoProtegido = preg_match('#^/api/alunos(?:/([0-9]+)(?:/presencas)?)?$#D', $path)
+        || $path === '/api/presencas' || (in_array($path, $rotas, true) && $path !== '/health');
+    if ($recursoProtegido) {
+        AuthSession::exigir();
+        if (in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+            AuthSession::validarCsrf();
+        }
+    }
+
+    if (preg_match('#^/api/auth/(sessao|login|logout)$#D', $path, $matches)) {
+        (new AuthController())->handle($_SERVER['REQUEST_METHOD'], $matches[1]);
+    } elseif (preg_match('#^/api/alunos(?:/([0-9]+))?$#D', $path, $matches)) {
         (new AlunoController())->handle($_SERVER['REQUEST_METHOD'], $matches[1] ?? null);
     } elseif (preg_match('#^/api/alunos/([0-9]+)/presencas$#D', $path, $matches)) {
         (new HistoricoController())->handle($_SERVER['REQUEST_METHOD'], $matches[1]);

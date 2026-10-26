@@ -74,11 +74,16 @@ O `EnvironmentTest` valida o carregamento das variaveis. O smoke test valida
 infraestrutura, paginas, assets e conexao PDO. Quando recebe a imagem de testes
 como segundo argumento (como no CI), o script aplica `database/schema.sql` ao
 MySQL descartavel `frequenciafacil_test` e executa `AlunosApiTest` e
-`PresencasApiTest` e `HistoricoApiTest` contra a
+`PresencasApiTest`, `HistoricoApiTest` e `AuthApiTest` contra a
 imagem de producao. Essa suite comprova o CRUD de alunos, duplicidade e bloqueio
 de exclusao com historico. Tambem testa consulta e gravacao de presencas,
 atualizacao sem duplicar e rollback do lote. Historico valida filtros inclusivos,
 totais, isolamento entre alunos e periodos sem registros.
+
+As páginas sem sessão agora retornam 401 no smoke test. O teste HTTP de autenticação
+confirma que as mesmas páginas continuam retornando HTML após login. Os testes de
+negócio recebem cookie/CSRF, e criam/removem somente seus próprios professores de teste.
+O comando de provisionamento está em `bin/`, incluído na imagem e bloqueado no Apache.
 
 ## CD preparado e desativado
 
@@ -126,7 +131,10 @@ Esta tarefa nao acessa nem altera a VPS. Antes do primeiro deploy:
 7. executar `docker compose -f compose.yaml -f compose.prod.yaml config` e testar
    manualmente o pull da imagem sem tocar no servico `db`;
 8. cadastrar secrets/variables, proteger o environment e ensaiar rollback por tag;
-9. somente depois definir `ENABLE_PRODUCTION_CD=true`.
+9. aplicar `database/migrations/001_create_professores.sql` no banco existente após backup,
+   criar o professor com `bin/criar-professor.php`, configurar HTTPS público e integrar
+   a tela de login/CSRF conforme `docs/autenticacao.md`;
+10. somente depois definir `ENABLE_PRODUCTION_CD=true`.
 
 Nunca use `docker compose down -v`, `docker volume prune` ou remova o volume de
 producao durante deploy da aplicacao.

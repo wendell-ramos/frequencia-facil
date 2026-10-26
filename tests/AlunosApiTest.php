@@ -6,8 +6,11 @@ use App\Config\Database;
 use PHPUnit\Framework\TestCase;
 
 /** Integração HTTP + MySQL real. O script de infraestrutura fornece um banco descartável. */
+require_once __DIR__ . '/AuthenticatedApiClient.php';
+
 final class AlunosApiTest extends TestCase
 {
+    use AuthenticatedApiClient;
     private string $baseUrl;
     private PDO $db;
     private array $ids = [];
@@ -24,10 +27,12 @@ final class AlunosApiTest extends TestCase
         }
         $this->baseUrl = rtrim($url, '/');
         $this->db = Database::getConnection();
+        $this->iniciarAutenticacaoDeTeste();
     }
 
     protected function tearDown(): void
     {
+        $this->removerProfessorDeTeste();
         if (!isset($this->db)) {
             return;
         }
@@ -43,7 +48,7 @@ final class AlunosApiTest extends TestCase
     {
         $context = stream_context_create(['http' => [
             'method' => $method,
-            'header' => "Content-Type: $tipo\r\n",
+            'header' => "Content-Type: $tipo\r\n" . $this->cabecalhosAutenticacao(),
             'content' => $raw ?? ($dados === null ? '' : json_encode((object) $dados, JSON_THROW_ON_ERROR)),
             'ignore_errors' => true,
             'timeout' => 10,
