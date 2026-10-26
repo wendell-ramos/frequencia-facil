@@ -1,5 +1,9 @@
 # Contrato da API
 
+As APIs de alunos, presenças e histórico exigem sessão PHP. Gravações exigem também
+`X-CSRF-Token`. Consulte [o contrato de autenticação](autenticacao.md) para bootstrap,
+login, logout e respostas 401/403. `/health` permanece público.
+
 Este arquivo é o acordo entre backend (Wendell) e frontend (Diogo) — **proposta**, ajuste à vontade.
 Os dois podem trabalhar em paralelo seguindo o que está aqui.
 Se mudar algo, mude **aqui primeiro** e avise no grupo.
@@ -42,9 +46,9 @@ Se mudar algo, mude **aqui primeiro** e avise no grupo.
 
 ## Alunos — US01 (itens 2 e 3)
 
-Endpoints de alunos, presença e histórico implementados. O frontend permanece
-em demonstração até a integração e validação feitas pelo Diogo após revisão
-das entregas. `USAR_MOCK` controla todas as telas e não foi alterado pelo backend.
+Endpoints de alunos, presença e histórico implementados. O frontend já usa a API
+real, com `MODO_DEMONSTRACAO` configurável por recurso. Nesta entrega ele precisa
+integrar também a tela de login, a sessão e o token CSRF descritos acima.
 
 ### `GET /api/alunos?busca=ana`
 ```json

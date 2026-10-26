@@ -54,6 +54,6 @@ jobs:
             node --input-type=module --check < "$arquivo"
           done
 
-      - name: Smoke test e APIs de alunos, presencas e historico com MySQL isolado
+      - name: Smoke test e APIs autenticadas com MySQL isolado
         shell: bash
         run: bash scripts/test-infrastructure.sh frequenciafacil-ci:${{ github.sha }} frequenciafacil-test:${{ github.sha }}

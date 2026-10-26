@@ -2,6 +2,14 @@
 
 Sistema web de cadastro de alunos, registro de presença e consulta de histórico.
 
+## Autenticação do backend
+
+Páginas e APIs exigem sessão de professor. Antes de usar, aplique a migração de
+professores e crie uma conta pelo comando administrativo. Não há conta padrão nem
+cadastro público. O frontend precisa integrar login e token CSRF.
+Veja [docs/autenticacao.md](docs/autenticacao.md) para configuração, primeiro acesso,
+Insomnia e HTTPS em produção. O health check permanece público.
+
 ## Tecnologias e estrutura
 
 PHP 8.3 puro, Apache com mod_rewrite e .htaccess, MySQL 8.4, PDO, Composer
@@ -25,8 +33,8 @@ compose.yaml        Ambiente Docker local
 A API de alunos implementa cadastro, listagem, consulta, edição e exclusão.
 A API de presença consulta a chamada por data e salva/atualiza marcações em lote.
 A API de histórico consulta um aluno por período e retorna presenças, faltas e totais.
-As telas seguem
-em modo de demonstração; a integração do frontend fica com o Diogo.
+As telas usam a API real desde o PR de integração. Nesta entrega, o Diogo precisa
+integrar também a tela de login, a consulta de sessão e o token CSRF.
 
 ## Configuração
 
@@ -133,7 +141,9 @@ Remove seus containers e sua rede ao terminar. Os testes de escrita exigem
 do banco normal. O contrato e as validações estão em `docs/api.md`.
 
 Para testar manualmente no Insomnia, use `http://localhost:8080/api/alunos`
-após `docker compose up -d --build`. POST/PUT usam JSON, por exemplo:
+após `docker compose up -d --build`, migração e criação de professor. Faça primeiro
+o fluxo de sessão/login de `docs/autenticacao.md`, preserve o cookie e envie
+`X-CSRF-Token` nas gravações. POST/PUT usam JSON, por exemplo:
 
 ```json
 { "nome": "Aluno Exemplo", "telefone": "(18) 99711-0001", "dataNascimento": "2000-02-29" }
@@ -152,7 +162,7 @@ Para presença, `GET /api/presencas?data=2000-01-01` consulta a chamada
 Use o ID de um aluno cadastrado. Um novo envio para o mesmo aluno/data atualiza
 a marcação. O lote é salvo por inteiro ou desfeito se houver erro; não são
 aceitas datas futuras, IDs repetidos no envio ou valores diferentes de
-`true`/`false`. O frontend continua em demonstração até o Diogo integrar as APIs.
+`true`/`false`. Essas requisições também exigem sessão e token CSRF.
 
 Para histórico, use `GET /api/alunos/{id}/presencas`. Os filtros `inicio` e `fim`
 são opcionais, por exemplo:

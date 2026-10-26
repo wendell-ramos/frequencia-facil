@@ -26,6 +26,7 @@ assert_get() {
   local expected_type="$2"
   local expected_content="$3"
   local label="$4"
+  local expected_status="${5:-200}"
   local safe_name="${label//[^a-zA-Z0-9]/_}"
   local headers="$response_dir/$safe_name.headers"
   local body="$response_dir/$safe_name.body"
@@ -38,8 +39,8 @@ assert_get() {
     "http://127.0.0.1:18080$route")"
   content_type="$(sed -n 's/^[Cc]ontent-[Tt]ype:[[:space:]]*//p' "$headers" | tail -n 1 | tr -d '\r')"
 
-  if [[ "$status" != 200 ]]; then
-    echo "$label retornou HTTP $status; esperado 200." >&2
+  if [[ "$status" != "$expected_status" ]]; then
+    echo "$label retornou HTTP $status; esperado $expected_status." >&2
     return 1
   fi
   if [[ ! "$content_type" =~ $expected_type ]]; then
@@ -115,10 +116,11 @@ for attempt in {1..30}; do
   sleep 2
 done
 
-assert_get / 'text/html' 'Fazer a chamada de hoje' 'GET raiz'
-assert_get /alunos 'text/html' '<h1>Alunos</h1>' 'GET alunos'
-assert_get /chamada 'text/html' '<h1>Chamada</h1>' 'GET chamada'
-assert_get /historico 'text/html' '<h1>Hist' 'GET historico'
+assert_get / 'application/json' 'Autenticação necessária.' 'GET raiz anonimo' 401
+assert_get /alunos 'application/json' 'Autenticação necessária.' 'GET alunos anonimo' 401
+assert_get /chamada 'application/json' 'Autenticação necessária.' 'GET chamada anonimo' 401
+assert_get /historico 'application/json' 'Autenticação necessária.' 'GET historico anonimo' 401
+assert_get /api/auth/sessao 'application/json' '"autenticado":false' 'GET sessao anonima'
 assert_get /health 'application/json' '"banco":"conectado"' 'GET health'
 assert_get /assets/css/estilo.css 'text/css' '.cabecalho' 'GET CSS'
 assert_get /assets/js/api.js '(application|text)/javascript' 'export const api' 'GET JavaScript'
@@ -132,7 +134,7 @@ if [[ -n "$test_image" ]]; then
     --env MYSQL_DATABASE=frequenciafacil_test \
     --env MYSQL_USER=frequencia_app \
     --env MYSQL_PASSWORD="$db_password" \
-    "$test_image" php vendor/bin/phpunit --filter '(AlunosApiTest|PresencasApiTest|HistoricoApiTest)'
+    "$test_image" php vendor/bin/phpunit --filter '(AlunosApiTest|PresencasApiTest|HistoricoApiTest|AuthApiTest)'
 fi
 
 echo "Smoke test HTTP, assets e integracao com MySQL concluido com sucesso."

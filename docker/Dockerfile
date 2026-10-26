@@ -27,6 +27,7 @@ RUN apt-get update \
     && composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
 FROM base AS production
+COPY bin ./bin
 COPY composer.json composer.lock ./
 COPY app ./app
 COPY assets ./assets

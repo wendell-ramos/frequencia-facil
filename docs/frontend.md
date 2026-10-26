@@ -28,6 +28,8 @@ assets/
 - As views só têm o HTML. Os dados vêm da API em JSON, buscados pelo JavaScript
   (contrato em `docs/api.md`).
 - As telas usam a API real (`/api/alunos`, `/api/presencas`, `/api/alunos/{id}/presencas`).
+  A entrega de autenticação exige integrar a tela pública de login, preservar o cookie,
+  consultar a sessão e enviar CSRF nas gravações: veja [autenticacao.md](autenticacao.md).
   Em `assets/js/api.js`, `MODO_DEMONSTRACAO` permite trocar cada recurso para dados de
   demonstração salvos no navegador (útil para testar uma tela sem banco). Com algum recurso
   em demonstração, o rodapé avisa.
