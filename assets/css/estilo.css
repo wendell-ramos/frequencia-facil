@@ -576,6 +576,70 @@ a { color: var(--cor-quadro); }
 .celula--falta .celula__marca { color: var(--cor-falta); background: var(--cor-falta-fundo); border-color: var(--cor-falta); }
 .celula__data { font-size: .78rem; color: var(--cor-grafite); font-variant-numeric: tabular-nums; }
 
+/* ==========================================================
+   Sessão (cabeçalho) e Login
+   ========================================================== */
+.sessao {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-left: .5rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgb(255 255 255 / .25);
+}
+.sessao__nome {
+  color: rgb(255 255 255 / .85);
+  font-size: .9rem;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sessao__sair {
+  font: inherit;
+  font-size: .9rem;
+  color: #fff;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / .45);
+  border-radius: var(--raio);
+  padding: .35rem .75rem;
+  cursor: pointer;
+}
+.sessao__sair:hover { background: rgb(255 255 255 / .12); border-color: #fff; }
+
+.conteudo--login {
+  display: grid;
+  place-items: start center;
+  padding-top: clamp(2rem, 8vh, 5rem);
+}
+.login {
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem 1.75rem;
+  border-top: 4px solid var(--cor-quadro);
+}
+.login__titulo { margin-bottom: .35rem; }
+.login__apoio { color: var(--cor-grafite); margin-bottom: 1.5rem; }
+.login__botao { width: 100%; }
+
+.senha { position: relative; }
+.senha .entrada { padding-right: 5.5rem; }
+.senha__mostrar {
+  position: absolute;
+  top: 50%;
+  right: .35rem;
+  transform: translateY(-50%);
+  font: inherit;
+  font-size: .85rem;
+  color: var(--cor-quadro);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: .35rem .55rem;
+  cursor: pointer;
+}
+.senha__mostrar:hover { background: var(--cor-quadro-claro); }
+
 /* ---------- Acessibilidade de movimento ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -586,7 +650,9 @@ a { color: var(--cor-quadro); }
   .conteudo { padding-top: 1.25rem; }
   .cabecalho__interno { gap: 0; }
   .marca { padding-bottom: .25rem; }
-  .navegacao { width: 100%; margin: 0 -.5rem; padding-bottom: .5rem; }
+  .navegacao { width: 100%; margin: 0 -.5rem; padding-bottom: .5rem; order: 1; }
+  .sessao { margin-left: 0; padding-left: 0; border-left: 0; }
+  .sessao__nome { max-width: 10ch; }
   .linha-chamada { grid-template-columns: 1.75rem 1fr auto; padding-inline: .5rem .6rem; }
   .linha-chamada--pendente .linha-chamada__nome::after { display: block; margin-left: 0; }
   .barra-salvar .botao { flex: 1; }

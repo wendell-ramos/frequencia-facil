@@ -21,23 +21,56 @@ export const MODO_DEMONSTRACAO = {
 /** true se alguma tela está usando dados de demonstração (mostra o aviso no rodapé). */
 export const EM_DEMONSTRACAO = Object.values(MODO_DEMONSTRACAO).some(Boolean);
 
-// ---------- API de verdade ----------
-async function request(method, path, body) {
+// ---------- Sessão do professor (docs/autenticacao.md) ----------
+// O cookie de sessão é HttpOnly e fica com o navegador. O token CSRF fica só nesta
+// variável (memória da página): nunca em localStorage. Some ao recarregar a página
+// e é buscado de novo em GET /api/auth/sessao.
+let csrfToken = null;
+
+const base = () => document.body.dataset.base || '';
+
+/** Leva para a tela de login e, depois de entrar, volta para a tela atual. */
+export function irParaLogin() {
+  const atual = location.pathname.slice(base().length) + location.search;
+  const volta = atual && atual !== '/' && !atual.startsWith('/login') ? `?volta=${encodeURIComponent(atual)}` : '';
+  location.assign(`${base()}/login${volta}`);
+}
+
+async function chamar(method, path, body, { tratar401 = true } = {}) {
+  const headers = { Accept: 'application/json' };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (method !== 'GET') headers['X-CSRF-Token'] = await obterToken();
+
   let res;
   try {
-    res = await fetch(`${document.body.dataset.base || ''}/api${path}`, {
+    res = await fetch(`${base()}/api${path}`, {
       method,
-      headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
+      headers,
+      credentials: 'same-origin',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
     // Servidor fora do ar ou sem internet: fetch nem chega a ter resposta
     throw erroApi('Não foi possível conectar ao servidor. Verifique a conexão e tente de novo.', 0);
   }
   const data = res.status === 204 ? null : await res.json().catch(() => null);
+
+  if (res.status === 401 && tratar401) {
+    // Sessão expirou (30 min parado ou 8 h no total) ou não existe
+    csrfToken = null;
+    irParaLogin();
+    throw erroApi('Sua sessão terminou. Entre novamente.', 401);
+  }
+  if (res.status === 403) {
+    // Token CSRF vencido: busca outro, mas NÃO repete a gravação sozinho
+    csrfToken = null;
+    throw erroApi('A sessão foi atualizada. Confira os dados e tente salvar de novo.', 403);
+  }
   if (!res.ok) throw erroApi(data?.mensagem || `Erro ${res.status}`, res.status, data?.erros);
   return data;
 }
+
+const request = (method, path, body) => chamar(method, path, body);
 
 // Erro da API no formato { "mensagem": "...", "erros": { "campo": "..." } }
 function erroApi(mensagem, status = 400, erros = {}) {
@@ -46,6 +79,39 @@ function erroApi(mensagem, status = 400, erros = {}) {
   err.erros = erros || {};
   return err;
 }
+
+/** Token CSRF atual; consulta a sessão se ainda não tiver um. */
+async function obterToken() {
+  if (!csrfToken) await consultarSessao();
+  return csrfToken;
+}
+
+/** GET /api/auth/sessao — { autenticado, professor, csrfToken } */
+async function consultarSessao() {
+  const sessao = await chamar('GET', '/auth/sessao', undefined, { tratar401: false });
+  csrfToken = sessao.csrfToken;
+  return sessao;
+}
+
+export const auth = {
+  sessao: consultarSessao,
+
+  /** POST /api/auth/login — troca o token pelo novo que vem na resposta. */
+  async entrar(email, senha) {
+    const resposta = await chamar('POST', '/auth/login', { email, senha }, { tratar401: false });
+    csrfToken = resposta.csrfToken;
+    return resposta;
+  },
+
+  /** POST /api/auth/logout — 204; apaga o token da memória. */
+  async sair() {
+    try {
+      await chamar('POST', '/auth/logout', undefined, { tratar401: false });
+    } finally {
+      csrfToken = null;
+    }
+  },
+};
 
 const apiReal = {
   listarAlunos:      (busca = '')   => request('GET', `/alunos${busca ? `?busca=${encodeURIComponent(busca)}` : ''}`),

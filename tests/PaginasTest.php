@@ -58,4 +58,21 @@ final class PaginasTest extends TestCase
         self::assertStringContainsString('href="/frequencia-facil/chamada"', $html);
         self::assertStringContainsString('src="/frequencia-facil/assets/js/inicio.js"', $html);
     }
+
+    public function testTelaDeLoginNaoMostraMenuNemSair(): void
+    {
+        $html = $this->capturar(fn () => (new PaginaController())->login());
+        self::assertStringContainsString('id="formulario-login"', $html);
+        self::assertStringContainsString('autocomplete="current-password"', $html);
+        self::assertStringContainsString('/assets/js/login.js', $html);
+        self::assertStringNotContainsString('class="navegacao"', $html);
+        self::assertStringNotContainsString('id="botao-sair"', $html);
+    }
+
+    public function testTelasProtegidasTemBotaoSair(): void
+    {
+        $html = $this->capturar(fn () => (new PaginaController())->alunos());
+        self::assertStringContainsString('id="botao-sair"', $html);
+        self::assertStringContainsString('id="nome-professor"', $html);
+    }
 }

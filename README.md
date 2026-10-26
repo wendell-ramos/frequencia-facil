@@ -6,7 +6,7 @@ Sistema web de cadastro de alunos, registro de presença e consulta de históric
 
 Páginas e APIs exigem sessão de professor. Antes de usar, aplique a migração de
 professores e crie uma conta pelo comando administrativo. Não há conta padrão nem
-cadastro público. O frontend precisa integrar login e token CSRF.
+cadastro público. A tela `/login` faz a entrada; o navegador sem sessão é levado até ela.
 Veja [docs/autenticacao.md](docs/autenticacao.md) para configuração, primeiro acesso,
 Insomnia e HTTPS em produção. O health check permanece público.
 
@@ -33,8 +33,7 @@ compose.yaml        Ambiente Docker local
 A API de alunos implementa cadastro, listagem, consulta, edição e exclusão.
 A API de presença consulta a chamada por data e salva/atualiza marcações em lote.
 A API de histórico consulta um aluno por período e retorna presenças, faltas e totais.
-As telas usam a API real desde o PR de integração. Nesta entrega, o Diogo precisa
-integrar também a tela de login, a consulta de sessão e o token CSRF.
+As telas usam a API real, com login, sessão e token CSRF integrados no frontend.
 
 ## Configuração
 
@@ -102,6 +101,7 @@ O PHP não cria bancos, usuários ou tabelas ao receber requisições web.
 
 | Método | Caminho relativo | Resultado |
 | --- | --- | --- |
+| GET | `/login` | Entrar (pública). Navegador sem sessão em outra tela é redirecionado para cá |
 | GET | `/` | Início: data de hoje e situação da chamada |
 | GET | `/alunos` | Cadastro, edição e exclusão de alunos |
 | GET | `/chamada` | Registro de presença por data |
