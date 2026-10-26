@@ -9,9 +9,9 @@ com autoload PSR-4 e PHPUnit 11 para testes.
 
 ```text
 app/Config/         Carregamento do .env e conexão PDO
-app/Controllers/    Telas, APIs de alunos/presenças e verificação do banco
+app/Controllers/    Telas, APIs de alunos/presenças/histórico e verificação do banco
 app/Http/           Respostas JSON e erros esperados da API
-app/Services/       Validação e persistência dos alunos e presenças com PDO
+app/Services/       Validação, persistência e consulta do histórico com PDO
 app/Views/          Páginas PHP (layout/ tem o topo e o rodapé comuns)
 assets/             CSS e JavaScript das telas, servidos direto pelo Apache
 database/schema.sql Tabelas alunos e presencas
@@ -24,7 +24,8 @@ compose.yaml        Ambiente Docker local
 
 A API de alunos implementa cadastro, listagem, consulta, edição e exclusão.
 A API de presença consulta a chamada por data e salva/atualiza marcações em lote.
-A API de histórico ainda não está implementada. As telas seguem
+A API de histórico consulta um aluno por período e retorna presenças, faltas e totais.
+As telas seguem
 em modo de demonstração; a integração do frontend fica com o Diogo.
 
 ## Configuração
@@ -125,7 +126,8 @@ bash scripts/test-infrastructure.sh frequenciafacil-backend:local frequenciafaci
 O script usa a porta local 18080, rede temporária e MySQL em `tmpfs`, sem montar
 o volume do projeto. Cria o schema, verifica as páginas e executa os testes
 dos endpoints de alunos e presenças, incluindo duplicidade, bloqueio de exclusão
-com histórico, atualização sem duplicar e rollback de chamadas inválidas.
+com histórico, atualização sem duplicar, rollback de chamadas inválidas e filtros
+inclusivos do histórico com totais calculados somente no período selecionado.
 Remove seus containers e sua rede ao terminar. Os testes de escrita exigem
 `FF_TEST_BASE_URL` e `MYSQL_DATABASE=frequenciafacil_test`; não use credenciais
 do banco normal. O contrato e as validações estão em `docs/api.md`.
@@ -152,6 +154,13 @@ a marcação. O lote é salvo por inteiro ou desfeito se houver erro; não são
 aceitas datas futuras, IDs repetidos no envio ou valores diferentes de
 `true`/`false`. O frontend continua em demonstração até o Diogo integrar as APIs.
 
+Para histórico, use `GET /api/alunos/{id}/presencas`. Os filtros `inicio` e `fim`
+são opcionais, por exemplo:
+`GET /api/alunos/1/presencas?inicio=2000-01-01&fim=2000-01-31`.
+A resposta inclui o aluno, os totais de presenças/faltas e os registros em ordem
+decrescente de data. Períodos sem marcações retornam lista vazia e totais zerados;
+datas sem lançamento não são convertidas em faltas. Consulte `docs/api.md`.
+
 ## Banco e integração com DevOps
 
 - `alunos`: nome, telefone e nascimento; combinação nome/telefone única.
@@ -170,10 +179,10 @@ Trabalhe em branches `feature/...`, abra PR para `main` e aguarde a revisão
 combinada com Canducci. CI/CD e configuração da VPS ficam com DevOps.
 
 Uma entrega que depende de outra ainda em revisão pode usar a branch anterior
-como base do PR. Esta entrega de presenças parte de `feature/backend-alunos`;
-enquanto o PR de alunos estiver aberto, essa é a base do PR de presenças.
-Depois do merge de alunos, ajuste a base para `main` e confira novamente o diff
-e o CI. O CI também aceita PRs com base em `feature/backend-*` para esse fluxo.
+como base do PR. Depois do merge da dependência, ajuste a base para `main` e
+confira novamente o diff e o CI. O CI também aceita PRs com base em
+`feature/backend-*` para esse fluxo. Alunos e presenças já foram incorporados à
+`main`; a branch `feature/backend-historico` parte dela e deve abrir PR para `main`.
 
 ## CI/CD e imagem de producao
 
