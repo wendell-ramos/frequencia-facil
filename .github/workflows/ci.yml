@@ -28,7 +28,14 @@ jobs:
           APP_IMAGE: ghcr.io/example/frequenciafacil:sha-ci
         run: |
           docker compose config --quiet
-          docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+          install -d -m 700 .ci-secrets
+          printf 'ci-app-password\n' > .ci-secrets/mysql_app_password
+          chmod 600 .ci-secrets/mysql_app_password
+          APP_IMAGE=ghcr.io/example/frequenciafacil@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+          MYSQL_APP_PASSWORD_FILE=.ci-secrets/mysql_app_password \
+            docker compose -f compose.prod.yaml config --quiet
+          rm -f .ci-secrets/mysql_app_password
+          rmdir .ci-secrets
 
       - name: Construir imagem da aplicacao
         run: docker build --target production --file docker/Dockerfile --tag frequenciafacil-ci:${{ github.sha }} .
@@ -53,6 +60,12 @@ jobs:
           for arquivo in assets/js/*.js; do
             node --input-type=module --check < "$arquivo"
           done
+
+      - name: Validar scripts de infraestrutura
+        shell: bash
+        run: |
+          bash -n scripts/*.sh
+          shellcheck scripts/*.sh
 
       - name: Smoke test e APIs autenticadas com MySQL isolado
         shell: bash

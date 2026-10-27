@@ -201,16 +201,21 @@ sintaxe PHP, valida os dois arquivos Compose, constroi a imagem e testa o
 endpoint real `/health` contra um MySQL 8.4 temporario. Consulte
 [`docs/infraestrutura.md`](docs/infraestrutura.md) para os limites desses testes.
 
-O `compose.yaml` continua sendo o ambiente local do backend. Em producao,
-`compose.prod.yaml` deve ser aplicado como segundo arquivo: ele exige uma imagem
-GHCR com tag do commit e transforma `mysql_data` em volume externo. Isso impede
-que o deploy da aplicacao crie um volume novo por engano. O script de deploy
-atualiza somente `app` com `--no-build --no-deps` e nunca executa `down`.
+O `compose.yaml` continua sendo o ambiente local. Em produção,
+`compose.prod.yaml` é um arquivo independente que define somente `app`, exige uma
+imagem GHCR por digest, monta apenas o Docker Secret da aplicação e usa a rede
+externa do MySQL já existente. Ele não contém o serviço `db` nem declara seu volume.
+O wrapper de deploy atualiza somente `app` com `--no-build --no-deps`, verifica o
+healthcheck e a identidade do MySQL e nunca executa `down`.
 
 O CD esta desativado por padrao. Mesmo depois de integrado na `main`, ele so
 prossegue quando o CI dessa `main` termina com sucesso e a variavel de repositorio
 `ENABLE_PRODUCTION_CD` vale `true`. Nao habilite antes de cumprir o checklist da
 documentacao e conferir o volume atual da VPS.
+
+O procedimento completo, incluindo backup restaurável, sudoers restrito, primeiro
+deploy controlado, HTTPS e rollback, está em
+[`docs/DEPLOY_VPS.md`](docs/DEPLOY_VPS.md).
 
 Referências: [PHP Docker](https://hub.docker.com/_/php),
 [MySQL Docker](https://hub.docker.com/_/mysql),

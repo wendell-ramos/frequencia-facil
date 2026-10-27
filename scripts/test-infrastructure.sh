@@ -120,10 +120,12 @@ assert_get / 'application/json' 'Autenticação necessária.' 'GET raiz anonimo'
 assert_get /alunos 'application/json' 'Autenticação necessária.' 'GET alunos anonimo' 401
 assert_get /chamada 'application/json' 'Autenticação necessária.' 'GET chamada anonimo' 401
 assert_get /historico 'application/json' 'Autenticação necessária.' 'GET historico anonimo' 401
+assert_get /login 'text/html' 'id="formulario-login"' 'GET login publico'
 assert_get /api/auth/sessao 'application/json' '"autenticado":false' 'GET sessao anonima'
 assert_get /health 'application/json' '"banco":"conectado"' 'GET health'
 assert_get /assets/css/estilo.css 'text/css' '.cabecalho' 'GET CSS'
 assert_get /assets/js/api.js '(application|text)/javascript' 'export const api' 'GET JavaScript'
+assert_get /assets/js/login.js '(application|text)/javascript' 'auth.entrar' 'GET JavaScript login'
 
 if [[ -n "$test_image" ]]; then
   docker run --rm --name "$test_container" \
