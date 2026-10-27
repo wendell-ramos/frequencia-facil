@@ -70,3 +70,7 @@ jobs:
       - name: Smoke test e APIs autenticadas com MySQL isolado
         shell: bash
         run: bash scripts/test-infrastructure.sh frequenciafacil-ci:${{ github.sha }} frequenciafacil-test:${{ github.sha }}
+
+      - name: Validar backup vazio, restauracao e inicializacao do schema
+        shell: bash
+        run: bash scripts/test-backup-database.sh

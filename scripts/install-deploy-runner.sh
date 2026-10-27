@@ -23,6 +23,7 @@ docker volume inspect frequenciafacil_mysql_data >/dev/null
 # O compose.yaml privado da VPS e os secrets existentes nao sao sobrescritos.
 install -o root -g root -m 0644 "$source_dir/compose.prod.yaml" "$deploy_dir/compose.app.yaml"
 install -d -o root -g root -m 0700 "$deploy_dir/migrations" "$deploy_dir/backups" "$deploy_dir/.deploy"
+install -o root -g root -m 0644 "$source_dir/database/schema.sql" "$deploy_dir/schema.sql"
 install -o root -g root -m 0644 "$source_dir/database/migrations/001_create_professores.sql" \
   "$deploy_dir/migrations/001_create_professores.sql"
 install -o root -g root -m 0755 "$source_dir/scripts/deploy.sh" /usr/local/sbin/frequenciafacil-deploy
