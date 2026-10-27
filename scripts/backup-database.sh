@@ -6,7 +6,8 @@ if [[ "$EUID" -ne 0 ]]; then
   exit 2
 fi
 
-backup_dir=/opt/frequenciafacil/backups
+backup_dir="${FF_BACKUP_DIR:-/opt/frequenciafacil/backups}"
+[[ "$backup_dir" = /* ]] || { echo "Diretorio de backup deve ser absoluto." >&2; exit 2; }
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup="$backup_dir/frequenciafacil-$timestamp.sql.gz"
 tmp="$backup.tmp"
@@ -23,6 +24,24 @@ db_id="$(docker ps -q \
   --filter label=com.docker.compose.project=frequenciafacil \
   --filter label=com.docker.compose.service=db)"
 test -n "$db_id" || { echo "Container MySQL nao encontrado." >&2; exit 2; }
+
+# Executa consultas sem copiar a senha para argumentos ou para o host.
+# shellcheck disable=SC2016
+source_mysql=(docker exec "$db_id" sh -ceu '
+  MYSQL_PWD="$(cat /run/secrets/mysql_root_password)"
+  export MYSQL_PWD
+  exec mysql --batch --skip-column-names --user=root "$@"
+' sh)
+
+schema_query="SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='frequenciafacil'"
+tables_query="SELECT table_name, table_type FROM information_schema.tables WHERE table_schema='frequenciafacil' ORDER BY table_name, table_type"
+
+source_schema_count="$("${source_mysql[@]}" -e "$schema_query")"
+[[ "$source_schema_count" = 1 ]] || { echo "Schema frequenciafacil nao encontrado na origem." >&2; exit 1; }
+source_tables="$("${source_mysql[@]}" -e "$tables_query")"
+source_table_count="$(sed '/^$/d' <<<"$source_tables" | wc -l | tr -d '[:space:]')"
+[[ "$source_table_count" =~ ^[0-9]+$ ]]
+echo "Tabelas na origem: $source_table_count"
 
 echo "Criando dump consistente do banco frequenciafacil..."
 docker exec "$db_id" sh -ceu '
@@ -58,10 +77,21 @@ if [[ "$verify_ready" != true ]]; then
 fi
 echo "Importando o dump no verificador descartavel..."
 gzip -cd "$tmp" | docker exec -i --env MYSQL_PWD="$verify_password" "$verify_container" mysql --user=root
-table_count="$(docker exec --env MYSQL_PWD="$verify_password" "$verify_container" \
-  mysql --batch --skip-column-names --user=root -e \
-  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='frequenciafacil'")"
-[[ "$table_count" =~ ^[0-9]+$ ]] && (( table_count > 0 ))
+restored_schema_count="$(docker exec --env MYSQL_PWD="$verify_password" "$verify_container" \
+  mysql --batch --skip-column-names --user=root -e "$schema_query")"
+[[ "$restored_schema_count" = 1 ]] || { echo "Schema frequenciafacil nao foi restaurado." >&2; exit 1; }
+restored_tables="$(docker exec --env MYSQL_PWD="$verify_password" "$verify_container" \
+  mysql --batch --skip-column-names --user=root -e "$tables_query")"
+restored_table_count="$(sed '/^$/d' <<<"$restored_tables" | wc -l | tr -d '[:space:]')"
+[[ "$restored_table_count" =~ ^[0-9]+$ ]]
+
+if [[ "$restored_tables" != "$source_tables" ]]; then
+  echo "As tabelas restauradas diferem da origem." >&2
+  diff -u \
+    <(printf '%s\n' "$source_tables") \
+    <(printf '%s\n' "$restored_tables") >&2 || true
+  exit 1
+fi
 
 echo "Restauracao verificada; gravando artefato e manifesto protegidos..."
 install -o root -g root -m 0600 "$tmp" "$backup"
@@ -69,5 +99,6 @@ sha256sum "$backup" >"$backup.sha256"
 chmod 0600 "$backup.sha256"
 
 echo "Backup criado e restaurado com sucesso em MySQL descartavel: $backup"
-echo "Tabelas verificadas: $table_count"
+echo "Schema verificado: frequenciafacil"
+echo "Tabelas verificadas: $restored_table_count (equivalentes a origem)"
 echo "Manifesto SHA-256: $backup.sha256"

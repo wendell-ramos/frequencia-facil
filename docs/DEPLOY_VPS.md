@@ -3,8 +3,8 @@
 ## 1. Estado auditado em 26/10/2026
 
 O GitHub foi consultado novamente antes destas alterações. A `main` está em
-`8f442cf912c0ac51c58ff4387626f8c0e695b8f9` (merge do PR #10). O CI de `push`
-desse SHA, execução `40421227197`, terminou com sucesso. O CD `40421361183` foi
+`c421b0fcddee0326f1a0d330eeb3f68ec86c7d97` (merge do PR #11). O CI de `push`
+desse SHA, execução `40425711132`, terminou com sucesso. O CD `40425856996` foi
 ignorado, como esperado, porque produção continua desativada.
 
 A VPS foi consultada por SSH, somente leitura, com a chave dedicada:
@@ -24,9 +24,11 @@ A VPS foi consultada por SSH, somente leitura, com a chave dedicada:
 - Netdata está ativo e a porta 19999 escuta em `0.0.0.0` e `[::]`. Isso deve ser
   corrigido antes de expor produção.
 
-Sem sudo/Docker não foi possível confirmar nesta auditoria o ID atual do container,
-as tabelas, mounts do volume, logs, UFW ou regras efetivas de publicação do Netdata.
-Nenhum arquivo da VPS foi modificado e nenhum segredo foi exibido.
+Sem sudo/Docker não foi possível confirmar na auditoria inicial o ID atual do container,
+mounts do volume, logs, UFW ou regras efetivas de publicação do Netdata. Em inspeção
+administrativa posterior, o MySQL foi confirmado como healthy e `SHOW TABLES` não
+retornou tabelas: o schema existe, mas o banco está legitimamente vazio. Nenhum arquivo
+da VPS foi modificado por esta correção e nenhum segredo foi exibido.
 
 ## 2. Problemas encontrados e correções do repositório
 
@@ -54,9 +56,12 @@ deploy usa `flock`, confere o label OCI do SHA aprovado, faz pull antes de alter
 o ID do MySQL não mudou e registra o digest atual. Em falha após a troca, tenta a
 imagem anterior e só informa rollback confirmado se ela também passar no healthcheck.
 
-Backups e migrações permanecem fora do CD. O backup lógico usa transação consistente,
-SHA-256, `gzip -t` e restauração integral em MySQL 8.4 descartável. A migração de
-`professores` só é aplicada explicitamente após validar o manifesto do backup.
+Backups e mudanças de schema permanecem fora do CD. O backup lógico usa transação
+consistente, SHA-256, `gzip -t` e restauração integral em MySQL 8.4 descartável. Ele
+exige que o schema exista e compara a lista ordenada de nomes/tipos de tabelas entre
+origem e restauração, inclusive quando ambas possuem zero tabelas. Banco comprovadamente
+vazio pode receber o `database/schema.sql` completo; banco parcial usa somente migrações
+incrementais, sempre após validar o manifesto do backup.
 
 ## 3. Arquivos alterados ou adicionados
 
@@ -68,7 +73,8 @@ SHA-256, `gzip -t` e restauração integral em MySQL 8.4 descartável. A migraç
 - `scripts/ghcr-login.sh`: token do GHCR somente pela entrada padrão.
 - `scripts/install-deploy-runner.sh`: instalação root auditável sem tocar em containers.
 - `scripts/backup-database.sh`: backup, hash e ensaio de restauração descartável.
-- `scripts/prepare-database.sh`: inspeção e migração aditiva condicionada a backup.
+- `scripts/prepare-database.sh`: inspeção, inicialização vazia ou migração condicionada a backup.
+- `scripts/test-backup-database.sh`: ensaio de backup vazio e populado em MySQL descartável.
 - `scripts/test-infrastructure.sh`: `/login` e JavaScript de login no smoke.
 - `ops/nginx/*`: modo de manutenção e modelo HTTPS/rate limit.
 - `.env.example` e este documento.
@@ -87,8 +93,10 @@ Todos os itens abaixo foram executados localmente em Docker Linux, sem dados da 
 - Compose de produção real em ambiente isolado: secret por arquivo, health conectado,
   nenhuma senha no ambiente, MySQL sem porta e app em loopback: passou;
 - imagem final: sem `.env`, testes, database ou scripts; comando administrativo presente;
-- backup lógico: dump, gzip, SHA-256 e restauração em MySQL 8.4 descartável com
-  três tabelas: passou;
+- backup lógico vazio: schema preservado, zero tabelas na origem/restauração e SHA-256: passou;
+- inicialização segura: `schema.sql` criou exatamente `alunos`, `presencas` e `professores`;
+  segunda inicialização sobre banco não vazio foi recusada: passou;
+- backup lógico populado: origem/restauração com as mesmas três tabelas: passou;
 - migração: remoção de `professores` somente no banco descartável, aplicação aditiva
   condicionada ao manifesto e `SHOW CREATE TABLE`: passou.
 
@@ -122,7 +130,7 @@ sudo -l -U ffdeploy
 
 O instalador preserva `/opt/frequenciafacil/compose.yaml`,
 `compose.security.yaml`, `secrets/` e o volume. Ele instala somente
-`compose.app.yaml`, migration, wrappers e sudoers. Não cria/recria containers.
+`compose.app.yaml`, `schema.sql`, migration, wrappers e sudoers. Não cria/recria containers.
 
 Valide o menor privilégio em nova sessão `ffdeploy`:
 
@@ -153,14 +161,31 @@ sudo ls -l /opt/frequenciafacil/backups
 sudo sha256sum --check /opt/frequenciafacil/backups/frequenciafacil-AAAA*.sql.gz.sha256
 ```
 
-Use exatamente o manifesto produzido pelo comando anterior para a mudança aditiva:
+O backup é válido tanto com zero quanto com várias tabelas. Ele só grava o artefato e
+o manifesto depois de confirmar que o schema `frequenciafacil` existe na restauração
+e que sua lista ordenada de tabelas/tipos é idêntica à origem.
+
+Como a inspeção confirmou **zero tabelas**, inicialize as três tabelas versionadas com
+o manifesto exato produzido acima:
+
+```bash
+sudo /usr/local/sbin/frequenciafacil-database --initialize-empty \
+  /opt/frequenciafacil/backups/frequenciafacil-AAAAMMDDTHHMMSSZ.sql.gz.sha256
+```
+
+Esse modo confere novamente que a contagem é exatamente zero antes de executar
+`database/schema.sql` e exige como resultado somente `alunos`, `presencas` e
+`professores`. Se qualquer tabela aparecer entre inspeção e execução, o comando recusa
+a inicialização. Não use `schema.sql` em banco parcial.
+
+Para um banco não vazio que possua `alunos`/`presencas`, mas ainda não `professores`,
+revise o estado e use apenas a migração incremental:
 
 ```bash
 sudo /usr/local/sbin/frequenciafacil-database --apply-professores \
   /opt/frequenciafacil/backups/frequenciafacil-AAAAMMDDTHHMMSSZ.sql.gz.sha256
 ```
 
-`database/migrations/001_create_professores.sql` só usa `CREATE TABLE IF NOT EXISTS`.
 O CD nunca executa SQL. Não usar `down`, `down -v`, `volume prune`, não publicar 3306
 e não substituir o Compose privado da VPS pelo Compose local.
 
@@ -256,7 +281,7 @@ Pré-requisitos obrigatórios:
 1. PR revisado e incorporado à `main`; CI de `push/main` aprovado.
 2. Runner restrito instalado e testado.
 3. MySQL/volume/rede inspecionados; backup restaurado com sucesso em banco descartável.
-4. Migração aditiva aplicada e tabela conferida.
+4. Banco vazio inicializado com as três tabelas e conferido; banco parcial usa migração revisada.
 5. Nginx em manutenção; Netdata não público; 3306 ausente do host.
 6. Secrets/variables preenchidos; `ENABLE_PRODUCTION_CD=false`.
 7. Autorização explícita do responsável.
@@ -305,7 +330,7 @@ não publicam, execuções concorrentes ficam serializadas e commits antigos sã
 | Auditoria SSH, fingerprint, swap, arquivos e portas | Concluída e testada |
 | Compose app-only com Docker Secret | Concluída e testada localmente |
 | CI, autenticação, frontend e MySQL descartável | Concluída e testada localmente |
-| Backup e migração protegida | Concluída e testada em banco descartável; VPS pendente |
+| Backup vazio/populado e inicialização protegida | Concluída e testada em banco descartável; VPS pendente |
 | Wrapper de deploy/rollback | Implementado, mas ainda não testado na VPS |
 | Instalação sudoers e acesso Docker controlado | Dependente de configuração administrativa |
 | Inspeção/backup/migração do MySQL real | Dependente de configuração administrativa |
