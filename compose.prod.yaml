@@ -1,11 +1,53 @@
+name: frequenciafacil
+
+# Independente do compose.yaml local: em producao este arquivo administra
+# somente o servico app e nunca inclui, recria ou remove o MySQL.
 services:
   app:
-    image: ${APP_IMAGE:?Defina APP_IMAGE com a tag imutavel publicada no GHCR}
+    image: ${APP_IMAGE:?Defina APP_IMAGE com digest imutavel do GHCR}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:80"
     environment:
       APP_ENV: production
       APP_BASE_PATH: ""
+      DB_HOST: db
+      DB_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-frequenciafacil}
+      MYSQL_USER: ${MYSQL_USER:-frequencia_app}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_app_password
+    secrets:
+      - mysql_app_password
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - SYS_ADMIN
+      - SYS_PTRACE
+    pids_limit: 256
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m
+      - /var/tmp:rw,nosuid,nodev,size=32m
+      - /var/lib/php/sessions:rw,nosuid,nodev,noexec,size=16m,uid=33,gid=33,mode=0700
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/health') === false ? 1 : 0);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
-volumes:
-  mysql_data:
+secrets:
+  mysql_app_password:
+    file: ${MYSQL_APP_PASSWORD_FILE:-./secrets/mysql_app_password}
+
+networks:
+  backend:
     external: true
-    name: ${MYSQL_VOLUME_NAME:?Defina MYSQL_VOLUME_NAME com o volume MySQL ja existente}
+    name: ${BACKEND_NETWORK_NAME:-frequenciafacil_backend}

@@ -18,13 +18,15 @@ class Database
         }
 
         $config = [];
-        foreach (['DB_HOST', 'DB_PORT', 'MYSQL_DATABASE', 'MYSQL_USER', 'MYSQL_PASSWORD'] as $name) {
+        foreach (['DB_HOST', 'DB_PORT', 'MYSQL_DATABASE', 'MYSQL_USER'] as $name) {
             $value = getenv($name);
-            if ($value === false || ($value === '' && $name !== 'MYSQL_PASSWORD')) {
+            if ($value === false || $value === '') {
                 throw new RuntimeException('Configuracao do banco incompleta.');
             }
             $config[$name] = $value;
         }
+
+        $config['MYSQL_PASSWORD'] = self::readPassword();
 
         $port = filter_var($config['DB_PORT'], FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1, 'max_range' => 65535],
@@ -48,5 +50,26 @@ class Database
         ]);
 
         return self::$connection;
+    }
+
+    private static function readPassword(): string
+    {
+        $file = getenv('MYSQL_PASSWORD_FILE');
+        if ($file !== false && $file !== '') {
+            if (!is_file($file) || is_link($file) || !is_readable($file)) {
+                throw new RuntimeException('Arquivo da credencial do banco invalido.');
+            }
+            $password = file_get_contents($file);
+            if ($password === false) {
+                throw new RuntimeException('Nao foi possivel ler a credencial do banco.');
+            }
+            return rtrim($password, "\r\n");
+        }
+
+        $password = getenv('MYSQL_PASSWORD');
+        if ($password === false) {
+            throw new RuntimeException('Configuracao do banco incompleta.');
+        }
+        return $password;
     }
 }

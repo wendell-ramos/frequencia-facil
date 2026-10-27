@@ -2,9 +2,9 @@
 
 O acesso aos dados é compartilhado entre os professores ativos deste MVP. Não há
 cadastro público, perfis administrativos, recuperação de senha ou separação por turma.
-A tela de login e a adaptação de `assets/js/api.js` são responsabilidade do frontend.
-Sem essa integração, as páginas protegidas respondem JSON com HTTP 401; não há redirecionamento
-para uma tela de login que ainda não existe. `/health` e os arquivos estáticos continuam públicos.
+A tela `/login` e `assets/js/api.js` já estão integrados ao backend. Navegadores sem
+sessão são redirecionados para o login; clientes de API continuam recebendo HTTP 401
+em JSON. `/health`, `/login` e os arquivos estáticos permanecem públicos.
 
 ## Banco e primeira conta
 
@@ -74,8 +74,7 @@ Não guardar a senha, o cookie de sessão ou o token CSRF em localStorage.
    invalida a sessão no servidor e expira o cookie. Apagar o token em memória. GET não faz logout.
 
 As páginas `/`, `/index.php`, `/alunos`, `/chamada` e `/historico` também exigem sessão.
-Ao integrar o frontend, adicionar uma rota pública específica para a tela de login;
-não retirar a proteção das páginas/APIs. Tratar 401 como necessidade de login.
+O frontend trata 401 como necessidade de login e mantém a proteção das páginas/APIs.
 Um 403 de CSRF deve solicitar nova consulta de sessão; não repetir uma gravação automaticamente.
 
 ## Sessão e limites
