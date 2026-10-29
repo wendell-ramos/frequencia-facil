@@ -71,6 +71,10 @@ jobs:
         shell: bash
         run: bash scripts/test-infrastructure.sh frequenciafacil-ci:${{ github.sha }} frequenciafacil-test:${{ github.sha }}
 
+      - name: Validar Compose de producao com backend e ingress descartaveis
+        shell: bash
+        run: bash scripts/test-production-compose.sh frequenciafacil-ci:${{ github.sha }}
+
       - name: Validar backup vazio, restauracao e inicializacao do schema
         shell: bash
         run: bash scripts/test-backup-database.sh
