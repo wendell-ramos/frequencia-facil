@@ -1,11 +1,10 @@
 # Deploy do FrequênciaFácil na VPS
 
-## 1. Estado auditado em 26/10/2026
+## 1. Estado confirmado em 28/10/2026
 
-O GitHub foi consultado novamente antes destas alterações. A `main` está em
-`c421b0fcddee0326f1a0d330eeb3f68ec86c7d97` (merge do PR #11). O CI de `push`
-desse SHA, execução `40425711132`, terminou com sucesso. O CD `40425856996` foi
-ignorado, como esperado, porque produção continua desativada.
+A `main` de partida desta correção está em
+`06023423a61da4515721bf44a726d9d07539ebde` (merge do PR #12). O CD automático
+continua desativado e esta alteração não acessa nem modifica a VPS.
 
 A VPS foi consultada por SSH, somente leitura, com a chave dedicada:
 
@@ -24,19 +23,24 @@ A VPS foi consultada por SSH, somente leitura, com a chave dedicada:
 - Netdata está ativo e a porta 19999 escuta em `0.0.0.0` e `[::]`. Isso deve ser
   corrigido antes de expor produção.
 
-Sem sudo/Docker não foi possível confirmar na auditoria inicial o ID atual do container,
-mounts do volume, logs, UFW ou regras efetivas de publicação do Netdata. Em inspeção
-administrativa posterior, o MySQL foi confirmado como healthy e `SHOW TABLES` não
-retornou tabelas: o schema existe, mas o banco está legitimamente vazio. Nenhum arquivo
-da VPS foi modificado por esta correção e nenhum segredo foi exibido.
+Em inspeção administrativa informada pelo responsável, o MySQL
+`frequenciafacil-db-1` e o PHP `frequenciafacil-app-1` estavam healthy e `/health`
+retornava HTTP 200 com banco conectado. A rede `frequenciafacil_backend` é interna;
+a rede bridge externa `frequenciafacil_ingress` já existe. A publicação
+`127.0.0.1:8080` passou a funcionar somente depois de conectar o app manualmente à
+ingress. O Nginx permanece em manutenção, retornando 503. Nenhum arquivo, container,
+rede, volume ou segredo da VPS foi alterado por esta correção.
 
 ## 2. Problemas encontrados e correções do repositório
 
 O antigo `compose.prod.yaml` era um overlay do Compose local. Por isso ainda
 interpolava `MYSQL_PASSWORD`/`MYSQL_ROOT_PASSWORD` e incluía o serviço `db`, o que
 não corresponde à VPS. Ele agora é independente e contém somente `app`, usa a rede
-externa `frequenciafacil_backend`, monta apenas `mysql_app_password` e publica Apache
-exclusivamente em `127.0.0.1:8080`. O secret de root nunca chega à aplicação.
+externa `frequenciafacil_backend` para falar com o MySQL e a rede bridge externa
+`frequenciafacil_ingress` para publicar Apache em `127.0.0.1:8080`. Somente o app
+participa das duas redes; o MySQL permanece exclusivamente na backend. O Compose
+marca ambas como `external: true`, portanto não cria nem recria nenhuma delas. O
+secret de root nunca chega à aplicação.
 
 `Database.php` aceita `MYSQL_PASSWORD_FILE`, recusa arquivo ausente/symlink e mantém
 `MYSQL_PASSWORD` apenas para desenvolvimento/testes locais. Há testes unitários para
@@ -53,7 +57,8 @@ O workflow não envia scripts executáveis a cada execução e não dá Docker a
 `ffdeploy`. O administrador instala wrappers root imutáveis e sudoers limitado. O
 deploy usa `flock`, confere o label OCI do SHA aprovado, faz pull antes de alterar o serviço, executa apenas
 `up -d --no-build --no-deps app`, exige health JSON conectado ao banco, confere que
-o ID do MySQL não mudou e registra o digest atual. Em falha após a troca, tenta a
+o ID do MySQL não mudou e registra o digest atual. Deploy e rollback não usam
+`--remove-orphans`. Em falha após a troca, tenta a
 imagem anterior e só informa rollback confirmado se ela também passar no healthcheck.
 
 Backups e mudanças de schema permanecem fora do CD. O backup lógico usa transação
@@ -72,6 +77,8 @@ incrementais, sempre após validar o manifesto do backup.
 - `scripts/deploy.sh`: deploy/healthcheck/rollback preservando o MySQL.
 - `scripts/ghcr-login.sh`: token do GHCR somente pela entrada padrão.
 - `scripts/install-deploy-runner.sh`: instalação root auditável sem tocar em containers.
+- `scripts/test-production-compose.sh`: duas redes descartáveis, publicação em loopback,
+  permissão do secret e healthcheck real sem incluir o MySQL no Compose de produção.
 - `scripts/backup-database.sh`: backup, hash e ensaio de restauração descartável.
 - `scripts/prepare-database.sh`: inspeção, inicialização vazia ou migração condicionada a backup.
 - `scripts/test-backup-database.sh`: ensaio de backup vazio e populado em MySQL descartável.
@@ -79,31 +86,25 @@ incrementais, sempre após validar o manifesto do backup.
 - `ops/nginx/*`: modo de manutenção e modelo HTTPS/rate limit.
 - `.env.example` e este documento.
 
-## 4. Testes executados nesta branch
+## 4. Validações desta correção
 
-Todos os itens abaixo foram executados localmente em Docker Linux, sem dados da VPS:
+As validações locais abaixo usaram somente Docker Desktop e recursos descartáveis;
+nenhum dado ou serviço da VPS foi acessado:
 
-- `docker compose config` local e produção: passou;
-- builds dos targets `production` e `test`: passaram;
-- PHPUnit unitário: 162 testes, 213 asserções, 42 integrações ignoradas sem banco;
-- integração com MySQL 8.4: 42 testes, 906 asserções, passou;
-- smoke HTTP: health/banco, autenticação, páginas, `/login`, CSS e JavaScript: passou;
-- lint de todos os PHP e sintaxe de todos os JavaScript: passou;
-- Bash `-n`, ShellCheck e Actionlint: passaram sem achados;
-- Compose de produção real em ambiente isolado: secret por arquivo, health conectado,
-  nenhuma senha no ambiente, MySQL sem porta e app em loopback: passou;
-- imagem final: sem `.env`, testes, database ou scripts; comando administrativo presente;
-- backup lógico vazio: schema preservado, zero tabelas na origem/restauração e SHA-256: passou;
-- inicialização segura: `schema.sql` criou exatamente `alunos`, `presencas` e `professores`;
-  segunda inicialização sobre banco não vazio foi recusada: passou;
-- backup lógico populado: origem/restauração com as mesmas três tabelas: passou;
-- migração: remoção de `professores` somente no banco descartável, aplicação aditiva
-  condicionada ao manifesto e `SHOW CREATE TABLE`: passou.
+- `docker compose -f compose.prod.yaml config --quiet`: passou;
+- build do target `production`: passou;
+- `scripts/test-production-compose.sh`: passou com backend `bridge internal=true`,
+  ingress `bridge internal=false`, app nas duas redes, MySQL somente na backend,
+  publicação `127.0.0.1:18081`, secret `root:33 0640` legível por `33:33` e
+  `/health` HTTP 200 com banco conectado;
+- Bash `-n` de todos os scripts, ShellCheck dos três scripts alterados, Actionlint e
+  `git diff --check`: passaram sem achados;
+- o teste recusa `--remove-orphans` em instalador/deploy e usa apenas
+  `up -d --no-build --no-deps app` para criar a aplicação descartável.
 
-Os testes HTTP executam os módulos JS apenas por validação sintática e validam seus
-arquivos/HTML/contratos contra o backend real; ainda não há E2E em navegador com
-Playwright/Cypress. Runner restrito, backup real, deploy, logs e rollback continuam
-pendentes de teste na VPS.
+O CI do PR repete esse teste em Linux, além da suíte PHPUnit, integração MySQL,
+smoke HTTP, backup/restauração, lints e builds já existentes. Runner restrito,
+backup real, deploy, logs e rollback continuam sem execução na VPS.
 
 ## 5. Preparação administrativa da VPS
 
@@ -131,6 +132,69 @@ sudo -l -U ffdeploy
 O instalador preserva `/opt/frequenciafacil/compose.yaml`,
 `compose.security.yaml`, `secrets/` e o volume. Ele instala somente
 `compose.app.yaml`, `schema.sql`, migration, wrappers e sudoers. Não cria/recria containers.
+
+Antes de executá-lo, confira as duas redes existentes. A ingress deve ser bridge e
+não interna; o instalador recusa qualquer outra configuração e nunca tenta recriá-la:
+
+```bash
+sudo docker network inspect frequenciafacil_backend \
+  --format 'backend driver={{.Driver}} internal={{.Internal}}'
+sudo docker network inspect frequenciafacil_ingress \
+  --format 'ingress driver={{.Driver}} internal={{.Internal}}'
+# esperado para ingress: driver=bridge internal=false
+```
+
+O secret da aplicação deve continuar protegido, mas legível pelo processo PHP
+`www-data` (GID 33). Estes comandos alteram somente metadados, não exibem nem
+substituem a senha:
+
+```bash
+sudo chown root:33 /opt/frequenciafacil/secrets/mysql_app_password
+sudo chmod 0640 /opt/frequenciafacil/secrets/mysql_app_password
+sudo stat -c '%U:%G %a %n' /opt/frequenciafacil/secrets/mysql_app_password
+# esperado: root:www-data 640
+```
+
+Não use `0644`, não passe a senha por argumento ou variável de ambiente e não
+altere o secret `mysql_root_password` para atender ao app.
+
+### Atualizar a instalação depois do merge
+
+No computador administrativo, atualize a cópia local da `main` e envie somente o
+Compose, scripts e SQL versionados, sem `.git`, `.env`, secrets ou dumps:
+
+```powershell
+git switch main
+git pull --ff-only origin main
+ssh -i $env:USERPROFILE\.ssh\ff_actions_ed25519 ffdeploy@164.163.11.240 `
+  "install -d -m 700 /tmp/frequenciafacil-release"
+scp -i $env:USERPROFILE\.ssh\ff_actions_ed25519 -r `
+  compose.prod.yaml database scripts `
+  ffdeploy@164.163.11.240:/tmp/frequenciafacil-release
+```
+
+Em sessão administrativa autorizada na VPS, mantenha o secret com os metadados
+acima, preserve as redes existentes e reinstale os arquivos. O instalador apenas
+valida as redes e instala a configuração; ele não sobe, remove ou recria containers:
+
+```bash
+sudo bash /tmp/frequenciafacil-release/scripts/install-deploy-runner.sh wendell-ramos
+sudo visudo -cf /etc/sudoers.d/frequenciafacil-deploy
+sudo -l -U ffdeploy
+```
+
+Depois, um deploy autorizado continua atualizando exclusivamente `app` com
+`up -d --no-build --no-deps app`; não use `--remove-orphans`. Verifique que o ID
+do MySQL não mudou e que o app está ligado às duas redes:
+
+```bash
+mysql_id_before="$(sudo docker inspect -f '{{.Id}}' frequenciafacil-db-1)"
+# execute o workflow manual somente após autorização e CI aprovado
+test "$mysql_id_before" = "$(sudo docker inspect -f '{{.Id}}' frequenciafacil-db-1)"
+sudo docker inspect frequenciafacil-app-1 \
+  --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}'
+curl -fsS http://127.0.0.1:8080/health
+```
 
 Valide o menor privilégio em nova sessão `ffdeploy`:
 

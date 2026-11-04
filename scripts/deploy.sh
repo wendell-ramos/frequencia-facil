@@ -10,6 +10,8 @@ deploy_dir=/opt/frequenciafacil
 compose_file="$deploy_dir/compose.app.yaml"
 healthcheck_url=http://127.0.0.1:8080/health
 expected_repository=ghcr.io/wendell-ramos/frequencia-facil
+backend_network="${BACKEND_NETWORK_NAME:-frequenciafacil_backend}"
+ingress_network="${INGRESS_NETWORK_NAME:-frequenciafacil_ingress}"
 
 if [[ "$EUID" -ne 0 ]]; then
   echo "Este comando deve ser executado pelo sudo restrito." >&2
@@ -25,8 +27,22 @@ exec 9>/run/lock/frequenciafacil-deploy.lock
 flock -n 9 || { echo "Ja existe um deploy em andamento." >&2; exit 75; }
 
 test -f "$compose_file" || { echo "Compose da aplicacao ausente." >&2; exit 2; }
-test -r "$deploy_dir/secrets/mysql_app_password" || { echo "Secret da aplicacao ausente ou ilegivel." >&2; exit 2; }
-docker network inspect frequenciafacil_backend >/dev/null
+app_secret="$deploy_dir/secrets/mysql_app_password"
+test -r "$app_secret" || { echo "Secret da aplicacao ausente ou ilegivel." >&2; exit 2; }
+test "$(stat -c '%u:%g %a' "$app_secret")" = '0:33 640' || {
+  echo "Secret da aplicacao deve ser root:33 com modo 0640." >&2
+  exit 2
+}
+docker network inspect "$backend_network" >/dev/null
+docker network inspect "$ingress_network" >/dev/null
+test "$(docker network inspect --format '{{.Driver}} {{.Internal}}' "$backend_network")" = 'bridge true' || {
+  echo "A rede backend deve usar o driver bridge e internal=true." >&2
+  exit 2
+}
+test "$(docker network inspect --format '{{.Driver}} {{.Internal}}' "$ingress_network")" = 'bridge false' || {
+  echo "A rede ingress deve usar o driver bridge e internal=false." >&2
+  exit 2
+}
 docker volume inspect frequenciafacil_mysql_data >/dev/null
 
 db_id="$(docker ps -q \
@@ -38,6 +54,7 @@ docker inspect --format '{{range .Mounts}}{{println .Name "|" .Destination}}{{en
   | grep -Fx 'frequenciafacil_mysql_data | /var/lib/mysql' >/dev/null
 
 compose=(docker compose --project-name frequenciafacil --file "$compose_file")
+export BACKEND_NETWORK_NAME="$backend_network" INGRESS_NETWORK_NAME="$ingress_network"
 APP_IMAGE="$image" "${compose[@]}" config --quiet
 
 app_id="$(APP_IMAGE="$image" "${compose[@]}" ps -q app 2>/dev/null || true)"
