@@ -161,3 +161,44 @@ Sem registros: `registros: []` e totais zerados — o front mostra "Nenhum regis
 - Aluno existente sem registros no período retorna 200, mantendo `aluno`, com lista vazia e totais zerados. Aluno inexistente ou ID inválido retorna 404.
 - Somente GET é aceito; outros métodos retornam 405 com `Allow: GET`.
 - O percentual e a regra de baixa frequência não são acrescentados a este endpoint; o relatório do card #9 permanece uma evolução separada.
+
+---
+
+## Relatório de frequência — card #9 (backend)
+
+### `GET /api/relatorios/frequencia?inicio=2026-10-01&fim=2026-10-31`
+
+Exige login do professor e respeita `APP_BASE_PATH`, como as demais APIs.
+Somente GET é aceito (405 com `Allow: GET` para outros métodos autenticados;
+gravações continuam sujeitas à verificação de CSRF). Sem sessão: 401.
+
+```json
+{
+  "periodo": { "inicio": "2026-10-01", "fim": "2026-10-31" },
+  "frequenciaMinima": 75,
+  "alunos": [
+    { "alunoId": 1, "nome": "Ana Souza", "presencas": 2, "faltas": 1, "total": 3, "percentual": 66.67, "baixaFrequencia": true },
+    { "alunoId": 2, "nome": "Bruno Lima", "presencas": 0, "faltas": 0, "total": 0, "percentual": null, "baixaFrequencia": false }
+  ]
+}
+```
+
+- `inicio` e `fim` seguem as regras do histórico: opcionais, vazios equivalem
+  a ausência, datas reais AAAA-MM-DD, limites inclusivos e consulta futura permitida.
+  Datas inválidas ou período invertido retornam 422 com os erros dos campos.
+- Lista todos os alunos por nome e ID, inclusive os que não têm marcações no
+  período. Sem alunos cadastrados: `alunos: []`. Nomes iguais não agrupam alunos diferentes.
+- Cada aluno considera somente suas próprias marcações salvas no período:
+  `total = presencas + faltas`. Datas sem registro não viram faltas.
+- `percentual = presencas / total * 100`, arredondado a duas casas decimais.
+  É um número JSON, podendo vir como `75` ou `100` sem casas decimais.
+  Com total zero, é `null`: mostrar **Sem registros**, sem classificar como baixa frequência.
+- `baixaFrequencia` indica frequência estritamente menor que 75%, antes do
+  arredondamento; exatamente 75% é suficiente. O limite segue a tela de histórico
+  atual e vem em `frequenciaMinima` para a tela do relatório não duplicar a regra.
+- Não exige migração nem altera os endpoints existentes. Os professores ativos
+  consultam os mesmos alunos, conforme o escopo de autenticação atual.
+
+**Integração do Diogo:** criar a tela do relatório, enviar os filtros na URL,
+usar o cookie de sessão, destacar `baixaFrequencia: true` e tratar 401/422.
+Para `percentual: null`, não mostrar 0%. A tela e sua navegação ainda não estão implementadas.
