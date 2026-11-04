@@ -76,7 +76,7 @@ a { color: var(--cor-quadro); }
 
 /* ---------- Cabeçalho ---------- */
 .cabecalho {
-  background: var(--cor-quadro);
+  background: #2346a6;
   color: #fff;
 }
 .cabecalho__interno {
