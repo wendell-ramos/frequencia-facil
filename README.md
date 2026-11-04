@@ -10,6 +10,13 @@ cadastro público. A tela `/login` faz a entrada; o navegador sem sessão é lev
 Veja [docs/autenticacao.md](docs/autenticacao.md) para configuração, primeiro acesso,
 Insomnia e HTTPS em produção. O health check permanece público.
 
+## Relatório de frequência (card #9)
+
+O backend oferece `GET /api/relatorios/frequencia`, com filtros opcionais `inicio`
+e `fim`, totais e percentual por aluno, além do indicador de frequência abaixo
+de 75%. Exige login. Contrato e exemplos em [docs/api.md](docs/api.md).
+A tela do relatório ainda depende da integração do frontend.
+
 ## Tecnologias e estrutura
 
 PHP 8.3 puro, Apache com mod_rewrite e .htaccess, MySQL 8.4, PDO, Composer

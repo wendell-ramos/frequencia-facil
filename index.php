@@ -9,6 +9,7 @@ use App\Controllers\HistoricoController;
 use App\Controllers\HomeController;
 use App\Controllers\PaginaController;
 use App\Controllers\PresencaController;
+use App\Controllers\RelatorioController;
 use App\Http\ApiException;
 use App\Http\JsonResponse;
 use App\Http\AuthSession;
@@ -33,7 +34,7 @@ try {
     }
     $paginaProtegida = in_array($path, $rotas, true) && !in_array($path, $paginasPublicas, true);
     $recursoProtegido = preg_match('#^/api/alunos(?:/([0-9]+)(?:/presencas)?)?$#D', $path)
-        || $path === '/api/presencas' || $paginaProtegida;
+        || $path === '/api/presencas' || $path === '/api/relatorios/frequencia' || $paginaProtegida;
 
     // Navegador abrindo uma tela sem sessão: vai para o login e volta para a mesma tela depois.
     // Clientes de API (curl, testes, fetch) continuam recebendo o 401 em JSON.
@@ -59,6 +60,8 @@ try {
         (new HistoricoController())->handle($_SERVER['REQUEST_METHOD'], $matches[1]);
     } elseif ($path === '/api/presencas') {
         (new PresencaController())->handle($_SERVER['REQUEST_METHOD']);
+    } elseif ($path === '/api/relatorios/frequencia') {
+        (new RelatorioController())->handle($_SERVER['REQUEST_METHOD']);
     } elseif (!in_array($path, $rotas, true)) {
         http_response_code(404);
         header('Content-Type: application/json; charset=utf-8');
