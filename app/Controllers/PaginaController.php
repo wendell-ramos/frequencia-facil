@@ -32,6 +32,11 @@ class PaginaController
         $this->exibir('historico');
     }
 
+    public function relatorio(): void
+    {
+        $this->exibir('relatorio');
+    }
+
     private function exibir(string $view): void
     {
         if (!headers_sent()) {

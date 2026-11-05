@@ -16,6 +16,7 @@ export const MODO_DEMONSTRACAO = {
   alunos: false,     // GET/POST/PUT/DELETE /api/alunos          (PR #5)
   presencas: false,  // GET/POST /api/presencas                  (PR #6)
   historico: false,  // GET /api/alunos/{id}/presencas           (PR #7)
+  relatorio: false,  // GET /api/relatorios/frequencia           (PR #14)
 };
 
 /** true se alguma tela está usando dados de demonstração (mostra o aviso no rodapé). */
@@ -123,6 +124,14 @@ const apiReal = {
   registrarPresenca: (data, registros) => request('POST', '/presencas', { data, registros }),
   historico: (id, inicio = '', fim = '') =>
     request('GET', `/alunos/${id}/presencas?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`),
+  relatorioFrequencia: (inicio = '', fim = '') => {
+    // Filtros opcionais: só vão na URL os que foram preenchidos
+    const filtros = new URLSearchParams();
+    if (inicio) filtros.set('inicio', inicio);
+    if (fim) filtros.set('fim', fim);
+    const consulta = filtros.toString();
+    return request('GET', `/relatorios/frequencia${consulta ? `?${consulta}` : ''}`);
+  },
 };
 
 // ---------- Mock (imita a API seguindo docs/api.md) ----------
@@ -260,6 +269,29 @@ const apiMock = {
       registros,
     };
   },
+
+  async relatorioFrequencia(inicio = '', fim = '') {
+    await esperar();
+    if (inicio && fim && inicio > fim) {
+      throw erroApi('Período inválido', 422, { fim: 'A data final não pode ser anterior à inicial.' });
+    }
+    const presencas = ler('ff_presencas', [])
+      .filter((p) => (!inicio || p.dataAula >= inicio) && (!fim || p.dataAula <= fim));
+    return {
+      periodo: { inicio: inicio || null, fim: fim || null },
+      frequenciaMinima: 75,
+      alunos: alunosMock().sort((a, b) => a.nome.localeCompare(b.nome)).map((a) => {
+        const doAluno = presencas.filter((p) => p.alunoId === a.id);
+        const certas = doAluno.filter((p) => p.presente).length;
+        const total = doAluno.length;
+        return {
+          alunoId: a.id, nome: a.nome, presencas: certas, faltas: total - certas, total,
+          percentual: total ? Math.round((certas / total) * 10000) / 100 : null,
+          baixaFrequencia: total > 0 && certas * 100 < total * 75,
+        };
+      }),
+    };
+  },
 };
 
 // Cada função usa a API real ou a demonstração conforme MODO_DEMONSTRACAO
@@ -267,6 +299,7 @@ const RECURSO = {
   listarAlunos: 'alunos', buscarAluno: 'alunos', criarAluno: 'alunos', editarAluno: 'alunos', excluirAluno: 'alunos',
   presencasDoDia: 'presencas', registrarPresenca: 'presencas',
   historico: 'historico',
+  relatorioFrequencia: 'relatorio',
 };
 
 export const api = Object.fromEntries(
