@@ -640,6 +640,29 @@ a { color: var(--cor-quadro); }
 }
 .senha__mostrar:hover { background: var(--cor-quadro-claro); }
 
+/* ---------- Relatório de frequência ---------- */
+.mensagem-acao { margin: -.5rem 0 1.25rem; }
+.relatorio { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.relatorio th, .relatorio td { padding: .7rem .6rem; border-bottom: 1px solid var(--cor-pauta); text-align: left; }
+.relatorio thead th { font-size: .9rem; color: var(--cor-grafite); }
+.relatorio .relatorio__num { text-align: right; }
+.relatorio__nome { font-weight: 700; overflow-wrap: anywhere; }
+.relatorio__sem { color: var(--cor-grafite); }
+.relatorio__baixa { background: var(--cor-falta-fundo); }
+.relatorio__baixa strong { color: var(--cor-falta); }
+.selo-baixa {
+  display: inline-block;
+  margin-left: .4rem;
+  padding: .1rem .5rem;
+  border: 1px solid var(--cor-falta);
+  border-radius: 999px;
+  color: var(--cor-falta);
+  background: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 /* ---------- Acessibilidade de movimento ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -651,9 +674,18 @@ a { color: var(--cor-quadro); }
   .cabecalho__interno { gap: 0; }
   .marca { padding-bottom: .25rem; }
   .navegacao { width: 100%; margin: 0 -.5rem; padding-bottom: .5rem; order: 1; }
+  .navegacao { gap: 0; flex-wrap: wrap; }
+  .navegacao a { padding-inline: .5rem; }
   .sessao { margin-left: 0; padding-left: 0; border-left: 0; }
   .sessao__nome { max-width: 10ch; }
   .linha-chamada { grid-template-columns: 1.75rem 1fr auto; padding-inline: .5rem .6rem; }
   .linha-chamada--pendente .linha-chamada__nome::after { display: block; margin-left: 0; }
   .barra-salvar .botao { flex: 1; }
+  /* Relatório: cada aluno vira um cartão, sem rolagem lateral nem texto cortado */
+  .relatorio, .relatorio tbody, .relatorio tr, .relatorio th, .relatorio td { display: block; }
+  .relatorio thead { display: none; }
+  .relatorio tr { padding: .5rem 0; border-bottom: 2px solid var(--cor-pauta); }
+  .relatorio th, .relatorio td { border: 0; padding: .25rem; }
+  .relatorio td.relatorio__num { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .relatorio td[data-rotulo]::before { content: attr(data-rotulo); color: var(--cor-grafite); }
 }

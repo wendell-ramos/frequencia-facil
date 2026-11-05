@@ -12,6 +12,7 @@ $itensMenu = [
     'chamada' => 'Chamada',
     'alunos' => 'Alunos',
     'historico' => 'Histórico',
+    'relatorio' => 'Relatório',
 ];
 ?>
 <!doctype html>

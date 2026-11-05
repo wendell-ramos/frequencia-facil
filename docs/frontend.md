@@ -4,7 +4,7 @@ Responsável: Diogo.
 
 ```text
 app/Controllers/HomeController.php     /  (página inicial, do Wendell)
-app/Controllers/PaginaController.php   /alunos, /chamada, /historico
+app/Controllers/PaginaController.php   /alunos, /chamada, /historico, /relatorio
 app/Views/
 ├── layout/topo.php      <head>, cabeçalho, menu, nome do professor e botão Sair
 ├── login.php            /login      Card #10: e-mail e senha (pública, sem menu)
@@ -12,14 +12,15 @@ app/Views/
 ├── home.php             /           Data de hoje e situação da chamada
 ├── alunos.php           /alunos     US01: cadastro, lista, editar, excluir
 ├── chamada.php          /chamada    US02: presença por data, caixas P e F
-└── historico.php        /historico  US03: histórico, totais e % de frequência
+├── historico.php        /historico  US03: histórico, totais e % de frequência
+└── relatorio.php        /relatorio  Card #9: frequência de todos os alunos por período
 assets/
 ├── css/estilo.css       Todo o visual (classes em português: bloco__elemento--variacao)
 └── js/
     ├── api.js           Chamadas à API + modo de demonstração por recurso (MODO_DEMONSTRACAO)
     ├── ui.js            Funções comuns (mensagens, datas, máscara de telefone, url())
     ├── login.js         Entrar e voltar para a tela pedida (?volta=)
-    ├── inicio.js  alunos.js  chamada.js  historico.js
+    ├── inicio.js  alunos.js  chamada.js  historico.js  relatorio.js
 ```
 
 ## Como funciona

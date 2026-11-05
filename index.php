@@ -26,7 +26,7 @@ try {
     }
     $path = '/' . trim($path, '/');
 
-    $rotas = ['/', '/index.php', '/health', '/login', '/alunos', '/chamada', '/historico'];
+    $rotas = ['/', '/index.php', '/health', '/login', '/alunos', '/chamada', '/historico', '/relatorio'];
     $paginasPublicas = ['/health', '/login'];
 
     if ($path !== '/health') {
@@ -81,6 +81,8 @@ try {
         (new PaginaController())->chamada();
     } elseif ($path === '/historico') {
         (new PaginaController())->historico();
+    } elseif ($path === '/relatorio') {
+        (new PaginaController())->relatorio();
     } else {
         (new HomeController())->index();
     }

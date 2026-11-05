@@ -201,4 +201,4 @@ gravações continuam sujeitas à verificação de CSRF). Sem sessão: 401.
 
 **Integração do Diogo:** criar a tela do relatório, enviar os filtros na URL,
 usar o cookie de sessão, destacar `baixaFrequencia: true` e tratar 401/422.
-Para `percentual: null`, não mostrar 0%. A tela e sua navegação ainda não estão implementadas.
+Para `percentual: null`, não mostrar 0%. A tela está em `/relatorio` (`assets/js/relatorio.js`).
