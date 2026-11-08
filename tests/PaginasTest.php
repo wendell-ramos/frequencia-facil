@@ -33,8 +33,9 @@ final class PaginasTest extends TestCase
             'alunos' => $this->capturar(fn () => (new PaginaController())->alunos()),
             'chamada' => $this->capturar(fn () => (new PaginaController())->chamada()),
             'historico' => $this->capturar(fn () => (new PaginaController())->historico()),
+            'relatorio' => $this->capturar(fn () => (new PaginaController())->relatorio()),
         ];
-        $scripts = ['home' => 'inicio', 'alunos' => 'alunos', 'chamada' => 'chamada', 'historico' => 'historico'];
+        $scripts = ['home' => 'inicio', 'alunos' => 'alunos', 'chamada' => 'chamada', 'historico' => 'historico', 'relatorio' => 'relatorio'];
 
         foreach ($telas as $nome => $html) {
             self::assertStringContainsString('<main class="conteudo">', $html, $nome);

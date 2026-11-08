@@ -15,7 +15,7 @@ Insomnia e HTTPS em produção. O health check permanece público.
 O backend oferece `GET /api/relatorios/frequencia`, com filtros opcionais `inicio`
 e `fim`, totais e percentual por aluno, além do indicador de frequência abaixo
 de 75%. Exige login. Contrato e exemplos em [docs/api.md](docs/api.md).
-A tela do relatório ainda depende da integração do frontend.
+A tela fica em `/relatorio` (menu **Relatório**) e exige login.
 
 ## Tecnologias e estrutura
 
@@ -113,6 +113,7 @@ O PHP não cria bancos, usuários ou tabelas ao receber requisições web.
 | GET | `/alunos` | Cadastro, edição e exclusão de alunos |
 | GET | `/chamada` | Registro de presença por data |
 | GET | `/historico` | Histórico e percentual de frequência por aluno |
+| GET | `/relatorio` | Relatório de frequência de todos os alunos por período |
 | GET | `/health` | HTTP 200 com banco acessível; 503 se a conexão falhar |
 
 Rotas desconhecidas retornam 404 e métodos não permitidos retornam 405.
